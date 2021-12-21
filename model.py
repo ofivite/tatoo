@@ -24,6 +24,7 @@ class WaveformEncoder(tf.keras.Model):
         self.feature_name_to_idx = feature_name_to_idx
         self.n_freqs = n_freqs
         self.n_rotations = n_rotations
+        self.rotation_steps = np.linspace(-np.pi, np.pi, self.n_rotations, endpoint=False, dtype=np.float32)
         self.radial_model = RadialFrequencies(n_hidden, n_freqs)
     
     @staticmethod    
@@ -48,9 +49,8 @@ class WaveformEncoder(tf.keras.Model):
 
     def get_rotation_spectrum(self):
         rotation_freqs = []
-        rotation_steps = np.linspace(-np.pi, np.pi, self.n_rotations, endpoint=False, dtype=np.float32)
-        assert 0.+0.j in rotation_steps # to have unrotated case
-        for t in rotation_steps:
+        assert 0.+0.j in self.rotation_steps # to have unrotated case
+        for t in self.rotation_steps:
             single_rot_freqs = []
             for m in range(-self.n_freqs+1, self.n_freqs):
                 mt = tf.dtypes.complex(tf.constant(0., dtype=tf.float32), tf.constant(t*m, dtype=tf.float32))
