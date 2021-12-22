@@ -3,10 +3,10 @@ import tensorflow as tf
 from tensorflow.keras.layers import Dense, Conv1D, Softmax
 
 class RadialFrequencies(tf.keras.Model):
-    def __init__(self, n_hidden=16, n_freqs=4):
+    def __init__(self, hidden_dim=16, n_freqs=4):
         super().__init__()
-        self.dense_1 = Dense(n_hidden, activation=tf.nn.relu)
-        self.dense_2 = Dense(n_hidden, activation=tf.nn.relu)
+        self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
+        self.dense_2 = Dense(hidden_dim, activation=tf.nn.relu)
         self.r_real = Dense(n_freqs, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones) 
         self.r_imag = Dense(n_freqs-1, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones)  
         
@@ -17,15 +17,14 @@ class RadialFrequencies(tf.keras.Model):
         r_imag = self.r_imag(x_hidden)
         return r_real, r_imag
 
-
 class WaveformEncoder(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, n_hidden=16, n_freqs=4, n_rotations=32):
+    def __init__(self, feature_name_to_idx, hidden_dim=16, n_freqs=4, n_rotations=32):
         super().__init__()
         self.feature_name_to_idx = feature_name_to_idx
         self.n_freqs = n_freqs
         self.n_rotations = n_rotations
         self.rotation_steps = np.linspace(-np.pi, np.pi, self.n_rotations, endpoint=False, dtype=np.float32)
-        self.radial_model = RadialFrequencies(n_hidden, n_freqs)
+        self.radial_model = RadialFrequencies(hidden_dim, n_freqs)
     
     @staticmethod    
     def to_complex(real, imag):
@@ -63,9 +62,9 @@ class WaveformEncoder(tf.keras.Model):
     def sample_waveforms(self, proj_freqs):  
         rotation_freqs = self.get_rotation_spectrum()
         waveforms = tf.math.reduce_sum(tf.tensordot(proj_freqs, rotation_freqs, axes=[[1], [1]]), axis=-1)
-        if not tf.math.reduce_all((imag_part:=tf.math.abs(tf.math.imag(waveforms))) < 1.e-5):
-            print(waveforms[imag_part > 1.e-5])
-            raise RuntimeError('Found large elements in imaginary part of waveforms')
+        # if not tf.math.reduce_all((imag_part:=tf.math.abs(tf.math.imag(waveforms))) < 1.e-5):
+        #     print(waveforms[imag_part > 1.e-5])
+        #     raise RuntimeError('Found large elements in imaginary part of waveforms')
         waveforms = tf.math.abs(waveforms)
         return waveforms
 
@@ -73,7 +72,7 @@ class WaveformEncoder(tf.keras.Model):
         z = inputs[:, :, self.feature_name_to_idx['rel_pt']]
         z = tf.dtypes.complex(z, 0)[:, :, tf.newaxis]
         proj_freqs = tf.math.reduce_sum(z*filter_freqs, axis=1)
-        assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
+        # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
         return proj_freqs
 
     def call(self, inputs):
@@ -85,14 +84,14 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
 class WaveformDecoder(tf.keras.Model):
-    def __init__(self, kernel_size=3, n_filters=10, hidden_dim=10, n_classes=2):
+    def __init__(self, kernel_size=3, n_kernels=10, hidden_dim=10, n_outputs=2):
         super().__init__()
-        self.conv_1 = Conv1D(n_filters, kernel_size, data_format='channels_last', activation='relu')
-        self.conv_2 = Conv1D(n_filters//2, kernel_size, data_format='channels_last', activation='relu')
+        self.conv_1 = Conv1D(n_kernels, kernel_size, data_format='channels_last', activation='relu')
+        self.conv_2 = Conv1D(n_kernels//2, kernel_size, data_format='channels_last', activation='relu')
         self.conv_3 = Conv1D(1, kernel_size, data_format='channels_last', activation='relu')
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
-        self.dense_3 = Dense(n_classes, activation=None)
+        self.dense_3 = Dense(n_outputs, activation=None)
         self.output_pred = Softmax()
         
     def call(self, inputs):
