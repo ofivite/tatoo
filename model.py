@@ -28,20 +28,20 @@ class WaveformEncoder(tf.keras.Model):
     
     @staticmethod    
     def to_complex(real, imag):
-        real = tf.concat([tf.reverse(real[:, :, 1:], axis=[-1]), real], axis=-1)
-        zeros = tf.expand_dims(tf.zeros_like(imag[:, :, 0]), axis=-1)
+        real = tf.concat([tf.reverse(real[..., 1:], axis=[-1]), real], axis=-1)
+        zeros = tf.expand_dims(tf.zeros_like(imag[..., 0]), axis=-1)
         imag = tf.concat([-tf.reverse(imag, axis=[-1]), zeros, imag], axis=-1)
         z = tf.dtypes.complex(real, imag)
         return z
 
     def get_radial_spectrum(self, inputs):
-        r = tf.expand_dims(inputs[:, :, self.feature_name_to_idx['r']], axis=-1)
+        r = tf.expand_dims(inputs[..., self.feature_name_to_idx['r']], axis=-1)
         r_freqs_real, r_freqs_imag = self.radial_model(r)
         r_freqs = self.to_complex(r_freqs_real, r_freqs_imag)
         return r_freqs
 
     def get_azim_spectrum(self, inputs):
-        theta = inputs[:, :, self.feature_name_to_idx['theta']]
+        theta = inputs[..., self.feature_name_to_idx['theta']]
         azim_freqs = [tf.math.exp(tf.dtypes.complex(0, m*theta)) for m in range(-self.n_freqs+1, self.n_freqs)]
         azim_freqs = tf.stack(azim_freqs, axis=-1)
         return azim_freqs
@@ -69,8 +69,8 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
     def project_onto_filters(self, inputs, filter_freqs):
-        z = inputs[:, :, self.feature_name_to_idx['pt']]
-        z = tf.dtypes.complex(z, 0)[:, :, tf.newaxis]
+        z = inputs[..., self.feature_name_to_idx['pt']]
+        z = tf.dtypes.complex(z, 0)[..., tf.newaxis]
         proj_freqs = tf.math.reduce_sum(z*filter_freqs, axis=1)
         # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
         return proj_freqs
@@ -113,5 +113,5 @@ class TaroNet(tf.keras.Model):
         
     def call(self, inputs):
         waveforms = self.wave_encoder(inputs)
-        outputs = self.wave_decoder(waveforms[:,:,tf.newaxis])
+        outputs = self.wave_decoder(waveforms[..., tf.newaxis])
         return outputs
