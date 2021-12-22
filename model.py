@@ -69,7 +69,7 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
     def project_onto_filters(self, inputs, filter_freqs):
-        z = inputs[:, :, self.feature_name_to_idx['rel_pt']]
+        z = inputs[:, :, self.feature_name_to_idx['pt']]
         z = tf.dtypes.complex(z, 0)[:, :, tf.newaxis]
         proj_freqs = tf.math.reduce_sum(z*filter_freqs, axis=1)
         # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
@@ -91,12 +91,15 @@ class WaveformDecoder(tf.keras.Model):
         self.conv_3 = Conv1D(1, kernel_size, data_format='channels_last', activation='relu')
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
-        self.dense_3 = Dense(n_outputs, activation=None)
+        self.output_dense = Dense(n_outputs, activation=None)
         self.output_pred = Softmax()
         
     def call(self, inputs):
         x_conv = self.conv_1(inputs)
-        x_conv = self.conv_3(self.conv_2(x_conv))
+        x_conv = self.conv_2(x_conv)
+        x_conv = self.conv_3(x_conv)
         x_conv = tf.squeeze(x_conv, axis=-1)
-        x_dense = self.dense_3(self.dense_2(self.dense_1(x_conv)))
-        return self.output_pred(x_dense)
+        x_dense = self.dense_1(x_conv)
+        x_dense = self.dense_2(x_dense)
+        outputs = self.output_pred(self.output_dense(x_dense))
+        return outputs
