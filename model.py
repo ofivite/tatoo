@@ -103,3 +103,15 @@ class WaveformDecoder(tf.keras.Model):
         x_dense = self.dense_2(x_dense)
         outputs = self.output_pred(self.output_dense(x_dense))
         return outputs
+
+    class TaroNet(tf.keras.Model):
+        def __init__(self, feature_name_to_idx, hidden_dim_encoder=16, n_freqs=4, n_rotations=32, 
+                        kernel_size=3, n_kernels=10, hidden_dim_decoder=10, n_outputs=2):
+            super().__init__()
+            self.wave_encoder = WaveformEncoder(feature_name_to_idx, hidden_dim_encoder, n_freqs, n_rotations)
+            self.wave_decoder = WaveformDecoder(kernel_size, n_kernels, hidden_dim_decoder, n_outputs)
+            
+        def call(self, inputs):
+            waveforms = self.wave_encoder(inputs)
+            outputs = self.wave_decoder(waveforms[:,:,tf.newaxis])
+            return outputs
