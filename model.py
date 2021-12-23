@@ -113,7 +113,7 @@ class WaveformDecoder(tf.keras.Model):
         outputs = self.output_pred(self.output_dense(x_dense))
         return outputs
 
-class TaroNet(tf.keras.Model):
+class TacoNet(tf.keras.Model):
     def __init__(self, feature_name_to_idx, hidden_dim_encoder=16, n_freqs=4, n_filters=10, n_rotations=32, 
                     kernel_size=3, n_kernels=10, hidden_dim_decoder=10, n_outputs=2):
         super().__init__()

@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 from sklearn.metrics import roc_auc_score
 
 from utils.data_preprocessing import get_tau_arrays, preprocess_taus, awkward_to_ragged
-from model import TaroNet
+from model import TacoNet
 
 tf.config.set_visible_devices([], device_type='GPU')
 tf.config.list_logical_devices()
@@ -55,7 +55,7 @@ def main(cfg: DictConfig) -> None:
     del(a_train, a_val)
 
     # define model
-    model = TaroNet(feature_name_to_idx, cfg.encoder_args.hidden_dim_encoder, cfg.encoder_args.n_freqs, cfg.encoder_args.n_filters, cfg.encoder_args.n_rotations, 
+    model = TacoNet(feature_name_to_idx, cfg.encoder_args.hidden_dim_encoder, cfg.encoder_args.n_freqs, cfg.encoder_args.n_filters, cfg.encoder_args.n_rotations, 
                         cfg.decoder_args.kernel_size, cfg.decoder_args.n_kernels, cfg.decoder_args.hidden_dim_decoder, cfg.decoder_args.n_outputs)
 
     opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
