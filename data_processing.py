@@ -11,17 +11,20 @@ def get_tau_targets(data_sample, file_name):
         targets = np.array(f.get('targets/block0_values'), dtype=np.int32)
     return pd.DataFrame(targets, columns=target_columns)
 
-def get_tau_arrays(data_sample, file_name, tree_name):
+def get_tau_arrays(datasets, tree_name):
     # retrieve tau consituents
-    with uproot.open(f'data/{data_sample}/{file_name}.root') as f:
-        a = f[tree_name].arrays(['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
-                    'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind',
-                    'tau_decayMode', 'tau_decayModeFinding',], how='zip')
-    # add target labels
-    targets = get_tau_targets(data_sample, file_name)
-    for c in targets.columns: 
-        a[c] = targets[c]
-    return a
+    arrays = []
+    for data_sample, file_name in datasets.items():
+        with uproot.open(f'data/{data_sample}/{file_name}.root') as f:
+            a = f[tree_name].arrays(['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
+                        'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind',
+                        'tau_decayMode', 'tau_decayModeFinding',], how='zip')
+        # add target labels
+        targets = get_tau_targets(data_sample, file_name)
+        for c in targets.columns: 
+            a[c] = targets[c]
+        arrays.append(a)
+    return ak.concatenate(arrays, axis=0)
 
 def preprocess_taus(a):
     # remove taus with abnormal phi
