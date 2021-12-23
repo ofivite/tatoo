@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Conv1D, Softmax
+from tensorflow.keras.layers import Dense, Conv1D, Flatten, Add, Softmax
 
 class RadialFrequencies(tf.keras.Model):
     def __init__(self, hidden_dim=16, n_freqs=4):
@@ -86,20 +86,25 @@ class WaveformEncoder(tf.keras.Model):
 class WaveformDecoder(tf.keras.Model):
     def __init__(self, kernel_size=3, n_kernels=10, hidden_dim=10, n_outputs=2):
         super().__init__()
-        self.conv_1 = Conv1D(n_kernels, kernel_size, data_format='channels_last', activation='relu')
-        self.conv_2 = Conv1D(n_kernels//2, kernel_size, data_format='channels_last', activation='relu')
-        self.conv_3 = Conv1D(1, kernel_size, data_format='channels_last', activation='relu')
+        self.conv_1 = Conv1D(n_kernels, kernel_size, padding='same', data_format='channels_last', activation='relu')
+        self.conv_2 = Conv1D(n_kernels, kernel_size, padding='same', data_format='channels_last', activation='relu')
+        # self.conv_3 = Conv1D(1, kernel_size, padding='same', data_format='channels_last', activation='relu')
+        self.add = Add()
+        self.flatten = Flatten() 
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
         self.output_dense = Dense(n_outputs, activation=None)
         self.output_pred = Softmax()
         
     def call(self, inputs):
-        x_conv = self.conv_1(inputs)
-        x_conv = self.conv_2(x_conv)
-        x_conv = self.conv_3(x_conv)
-        x_conv = tf.squeeze(x_conv, axis=-1)
-        x_dense = self.dense_1(x_conv)
+        x_conv_out = self.conv_1(inputs)
+        x_conv_in = self.add([x_conv_out, inputs])
+        x_conv_out = self.conv_2(x_conv_in)
+        x_conv_in = self.add([x_conv_out, inputs])
+        # x_conv = self.conv_3(x_conv)
+        # x_conv = tf.squeeze(x_conv, axis=-1)
+        x_conv_out = self.flatten(x_conv_in)
+        x_dense = self.dense_1(x_conv_out)
         x_dense = self.dense_2(x_dense)
         outputs = self.output_pred(self.output_dense(x_dense))
         return outputs
