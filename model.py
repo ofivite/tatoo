@@ -18,13 +18,14 @@ class RadialFrequencies(tf.keras.Model):
         return r_real, r_imag
 
 class WaveformEncoder(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, hidden_dim=16, n_freqs=4, n_rotations=32):
+    def __init__(self, feature_name_to_idx, hidden_dim=16, n_freqs=4, n_filters=10, n_rotations=32):
         super().__init__()
         self.feature_name_to_idx = feature_name_to_idx
         self.n_freqs = n_freqs
+        self.n_filters = n_filters
         self.n_rotations = n_rotations
         self.rotation_steps = np.linspace(-np.pi, np.pi, self.n_rotations, endpoint=False, dtype=np.float32)
-        self.radial_model = RadialFrequencies(hidden_dim, n_freqs)
+        self.radial_models = [RadialFrequencies(hidden_dim, n_freqs) for _ in range(self.n_filters)]
     
     @staticmethod    
     def to_complex(real, imag):
@@ -36,14 +37,17 @@ class WaveformEncoder(tf.keras.Model):
 
     def get_radial_spectrum(self, inputs):
         r = tf.expand_dims(inputs[..., self.feature_name_to_idx['r']], axis=-1)
-        r_freqs_real, r_freqs_imag = self.radial_model(r)
-        r_freqs = self.to_complex(r_freqs_real, r_freqs_imag)
+        r_freqs = []
+        for radial_model in self.radial_models:
+            r_freqs_real, r_freqs_imag = radial_model(r)
+            r_freqs.append(self.to_complex(r_freqs_real, r_freqs_imag))
+        r_freqs = tf.stack(r_freqs, axis=-2)
         return r_freqs
 
     def get_azim_spectrum(self, inputs):
         theta = inputs[..., self.feature_name_to_idx['theta']]
         azim_freqs = [tf.math.exp(tf.dtypes.complex(0, m*theta)) for m in range(-self.n_freqs+1, self.n_freqs)]
-        azim_freqs = tf.stack(azim_freqs, axis=-1)
+        azim_freqs = tf.stack(azim_freqs, axis=-1)[..., tf.newaxis, :] # additional axis for filter dimension
         return azim_freqs
 
     def get_rotation_spectrum(self):
@@ -61,7 +65,7 @@ class WaveformEncoder(tf.keras.Model):
 
     def sample_waveforms(self, proj_freqs):  
         rotation_freqs = self.get_rotation_spectrum()
-        waveforms = tf.math.reduce_sum(tf.tensordot(proj_freqs, rotation_freqs, axes=[[1], [1]]), axis=-1)
+        waveforms = tf.math.reduce_sum(tf.tensordot(proj_freqs, rotation_freqs, axes=[[2], [1]]), axis=-1)
         # if not tf.math.reduce_all((imag_part:=tf.math.abs(tf.math.imag(waveforms))) < 1.e-5):
         #     print(waveforms[imag_part > 1.e-5])
         #     raise RuntimeError('Found large elements in imaginary part of waveforms')
@@ -70,8 +74,8 @@ class WaveformEncoder(tf.keras.Model):
 
     def project_onto_filters(self, inputs, filter_freqs):
         z = inputs[..., self.feature_name_to_idx['pt']]
-        z = tf.dtypes.complex(z, 0)[..., tf.newaxis]
-        proj_freqs = tf.math.reduce_sum(z*filter_freqs, axis=1)
+        z = tf.dtypes.complex(z, 0)[..., tf.newaxis, tf.newaxis] # axes for filter and frequency dimensions
+        proj_freqs = tf.math.reduce_sum(tf.multiply(z, filter_freqs), axis=1) # sum over constituents
         # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
         return proj_freqs
 
@@ -110,10 +114,10 @@ class WaveformDecoder(tf.keras.Model):
         return outputs
 
 class TaroNet(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, hidden_dim_encoder=16, n_freqs=4, n_rotations=32, 
+    def __init__(self, feature_name_to_idx, hidden_dim_encoder=16, n_freqs=4, n_filters=10, n_rotations=32, 
                     kernel_size=3, n_kernels=10, hidden_dim_decoder=10, n_outputs=2):
         super().__init__()
-        self.wave_encoder = WaveformEncoder(feature_name_to_idx, hidden_dim_encoder, n_freqs, n_rotations)
+        self.wave_encoder = WaveformEncoder(feature_name_to_idx, hidden_dim_encoder, n_freqs, n_filters, n_rotations)
         self.wave_decoder = WaveformDecoder(kernel_size, n_kernels, hidden_dim_decoder, n_outputs)
         
     def call(self, inputs):
