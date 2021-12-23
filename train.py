@@ -1,7 +1,8 @@
 import awkward as ak
 import tensorflow as tf
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
+from sklearn.metrics import roc_auc_score
 
 from utils.data_preprocessing import get_tau_arrays, preprocess_taus, awkward_to_ragged
 from model import TaroNet
@@ -63,6 +64,14 @@ def main(cfg: DictConfig) -> None:
                 metrics=['accuracy'])
 
     model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, verbose=1)
+
+    # compute metrics
+    train_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_train).batch(10000)
+    val_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_valid).batch(10000)
+    train_preds = model.predict(train_data_for_predict)
+    val_preds = model.predict(val_data_for_predict)
+    print('ROC AUC, train: ', roc_auc_score(train_labels, train_preds))
+    print('ROC AUC, val: ', roc_auc_score(val_labels, val_preds))
 
 if __name__ == '__main__':
     main()
