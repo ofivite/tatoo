@@ -1,0 +1,28 @@
+# input data
+datasets:
+  GluGluHToTauTau_M125: eventTuple_6
+  TTToSemiLeptonic: eventTuple_80
+  # DYJetsToLL_M-50-amcatnloFXFX_ext2: eventTuple_98
+tree_name: taus
+
+# encoder
+encoder_args:
+  hidden_dim_encoder: 100
+  n_freqs: 4
+  n_filters: 10
+  n_rotations: 24
+
+# decoder
+decoder_args:
+  kernel_size: 4
+  n_kernels: 10
+  hidden_dim_decoder: 100
+  n_outputs: 2
+
+# train/val info
+n_samples_train: 100000
+n_samples_val: 30000
+feature_names: ['r', 'theta', 'pt']
+learning_rate: 0.0001
+batch_size: 100
+n_epochs: 1
