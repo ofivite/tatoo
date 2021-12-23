@@ -4,9 +4,10 @@ import tensorflow as tf
 import h5py
 import numpy as np
 import pandas as pd
+from hydra.utils import to_absolute_path
 
 def get_tau_targets(data_sample, file_name):
-    with h5py.File(f'data/{data_sample}/{file_name}_pred.h5', "r") as f:
+    with h5py.File(to_absolute_path(f'data/{data_sample}/{file_name}_pred.h5'), "r") as f:
         target_columns = [i.decode("utf-8") for i in f.get('targets/block0_items')]
         targets = np.array(f.get('targets/block0_values'), dtype=np.int32)
     return pd.DataFrame(targets, columns=target_columns)
@@ -15,7 +16,7 @@ def get_tau_arrays(datasets, tree_name):
     # retrieve tau consituents
     arrays = []
     for data_sample, file_name in datasets.items():
-        with uproot.open(f'data/{data_sample}/{file_name}.root') as f:
+        with uproot.open(to_absolute_path(f'data/{data_sample}/{file_name}.root')) as f:
             a = f[tree_name].arrays(['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                         'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind',
                         'tau_decayMode', 'tau_decayModeFinding',], how='zip')
