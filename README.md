@@ -1,1 +1,1 @@
-# DeepTau-v3
+# TaroNet
