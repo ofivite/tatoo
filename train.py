@@ -24,7 +24,7 @@ def main(cfg: DictConfig) -> None:
     a_val = ak.concatenate([a_taus[cfg.n_samples_train:cfg.n_samples_train+cfg.n_samples_val], \
                             a_jets[cfg.n_samples_train:cfg.n_samples_train+cfg.n_samples_val]], axis=0)
     
-    print('Prepare TF datasets')
+    print('Preparing TF datasets')
     feature_name_to_idx = {name: cfg.feature_names.index(name) for name in cfg.feature_names}
     ragged_pf_train = awkward_to_ragged(a_train, cfg.feature_names)
     ragged_pf_valid = awkward_to_ragged(a_val, cfg.feature_names)
