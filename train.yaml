@@ -5,14 +5,15 @@ datasets:
   # DYJetsToLL_M-50-amcatnloFXFX_ext2: eventTuple_98
 tree_name: taus
 
-# encoder
+# model
+model_name: taco_test
+
 encoder_args:
   hidden_dim_encoder: 100
   n_freqs: 4
   n_filters: 10
   n_rotations: 24
 
-# decoder
 decoder_args:
   kernel_size: 4
   n_kernels: 10

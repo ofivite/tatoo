@@ -52,11 +52,11 @@ class WaveformEncoder(tf.keras.Model):
 
     def get_rotation_spectrum(self):
         rotation_freqs = []
-        assert 0.+0.j in self.rotation_steps # to have unrotated case
+        assert 0. in self.rotation_steps # to have unrotated case
         for t in self.rotation_steps:
             single_rot_freqs = []
             for m in range(-self.n_freqs+1, self.n_freqs):
-                mt = tf.dtypes.complex(tf.constant(0., dtype=tf.float32), tf.constant(t*m, dtype=tf.float32))
+                mt = tf.dtypes.complex(tf.constant(0., dtype=tf.float32), tf.constant(m*t, dtype=tf.float32))
                 single_rot_freqs.append(tf.math.exp(mt))
             single_rot_freqs = tf.linalg.diag(single_rot_freqs)
             rotation_freqs.append(single_rot_freqs)

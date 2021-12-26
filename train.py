@@ -1,6 +1,9 @@
 import awkward as ak
+import numpy as np
 import tensorflow as tf
+
 import hydra
+from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
 from sklearn.metrics import roc_auc_score
 
@@ -14,21 +17,23 @@ tf.config.list_logical_devices()
 @hydra.main(config_path='.', config_name='train')
 def main(cfg: DictConfig) -> None:
 
-    print('Retrieving input awkward arrays')
+    print('\n-> Retrieving input awkward arrays')
     a = get_tau_arrays(cfg.datasets, cfg.tree_name)
     
-    print('Preprocessing')
+    print('\n-> Preprocessing')
     a = preprocess_taus(a)
     a_taus = a[a['node_tau'] == 1]
     a_jets = a[a['node_jet'] == 1]
     a_train = ak.concatenate([a_taus[:cfg.n_samples_train], a_jets[:cfg.n_samples_train]], axis=0)
     a_val = ak.concatenate([a_taus[cfg.n_samples_train:cfg.n_samples_train+cfg.n_samples_val], \
                             a_jets[cfg.n_samples_train:cfg.n_samples_train+cfg.n_samples_val]], axis=0)
+    a_train = a_train[np.random.permutation(len(a_train))]
+    a_val = a_val[np.random.permutation(len(a_val))]
     
-    print('Preparing TF datasets')
+    print('\n-> Preparing TF datasets')
     feature_name_to_idx = {name: cfg.feature_names.index(name) for name in cfg.feature_names}
     ragged_pf_train = awkward_to_ragged(a_train, cfg.feature_names)
-    ragged_pf_valid = awkward_to_ragged(a_val, cfg.feature_names)
+    ragged_pf_val = awkward_to_ragged(a_val, cfg.feature_names)
     del(a_taus, a_jets, a)
 
     # add train labels
@@ -48,7 +53,7 @@ def main(cfg: DictConfig) -> None:
     val_labels = val_labels.values
 
     # create validation data set
-    val_data = tf.data.Dataset.from_tensor_slices((ragged_pf_valid, val_labels))
+    val_data = tf.data.Dataset.from_tensor_slices((ragged_pf_val, val_labels))
     val_data = val_data.cache()
     val_data = val_data.shuffle(len(val_labels)).batch(cfg.batch_size)
     val_data = val_data.prefetch(tf.data.experimental.AUTOTUNE)
@@ -66,12 +71,17 @@ def main(cfg: DictConfig) -> None:
     model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, verbose=1)
 
     # compute metrics
+    print("\n-> Evaluating performance")
     train_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_train).batch(10000)
-    val_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_valid).batch(10000)
+    val_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_val).batch(10000)
     train_preds = model.predict(train_data_for_predict)
     val_preds = model.predict(val_data_for_predict)
     print('ROC AUC, train: ', roc_auc_score(train_labels, train_preds))
     print('ROC AUC, val: ', roc_auc_score(val_labels, val_preds))
+
+    # save model
+    print("\n-> Saving model")
+    model.save(to_absolute_path(f'models/{cfg.model_name}.tf'), save_format="tf")
 
 if __name__ == '__main__':
     main()
