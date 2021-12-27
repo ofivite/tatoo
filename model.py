@@ -3,12 +3,12 @@ import tensorflow as tf
 from tensorflow.keras.layers import Dense, Conv1D, Flatten, Add, Softmax
 
 class RadialFrequencies(tf.keras.Model):
-    def __init__(self, hidden_dim=16, n_freqs=4):
+    def __init__(self, hidden_dim, n_freqs):
         super().__init__()
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim, activation=tf.nn.relu)
-        self.r_real = Dense(n_freqs, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones) 
-        self.r_imag = Dense(n_freqs-1, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones)  
+        self.r_real = Dense(n_freqs+1, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones) 
+        self.r_imag = Dense(n_freqs, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones)  
         
     def call(self, inputs):
         x_hidden = self.dense_1(inputs)
@@ -24,7 +24,6 @@ class WaveformEncoder(tf.keras.Model):
         self.n_freqs = n_freqs
         self.n_filters = n_filters
         self.n_rotations = n_rotations
-        self.rotation_steps = np.linspace(-np.pi, np.pi, self.n_rotations, endpoint=False, dtype=np.float32)
         self.radial_models = [RadialFrequencies(hidden_dim, n_freqs) for _ in range(self.n_filters)]
     
     @staticmethod    
@@ -46,26 +45,19 @@ class WaveformEncoder(tf.keras.Model):
 
     def get_azim_spectrum(self, inputs):
         theta = inputs[..., self.feature_name_to_idx['theta']]
-        azim_freqs = [tf.math.exp(tf.dtypes.complex(0, m*theta)) for m in range(-self.n_freqs+1, self.n_freqs)]
+        azim_freqs = [tf.math.exp(tf.dtypes.complex(0, m*theta)) for m in range(-self.n_freqs, self.n_freqs+1)]
         azim_freqs = tf.stack(azim_freqs, axis=-1)[..., tf.newaxis, :] # additional axis for filter dimension
         return azim_freqs
 
     def get_rotation_spectrum(self):
-        rotation_freqs = []
-        assert 0. in self.rotation_steps # to have unrotated case
-        for t in self.rotation_steps:
-            single_rot_freqs = []
-            for m in range(-self.n_freqs+1, self.n_freqs):
-                mt = tf.dtypes.complex(tf.constant(0., dtype=tf.float32), tf.constant(m*t, dtype=tf.float32))
-                single_rot_freqs.append(tf.math.exp(mt))
-            single_rot_freqs = tf.linalg.diag(single_rot_freqs)
-            rotation_freqs.append(single_rot_freqs)
-        rotation_freqs = tf.stack(rotation_freqs, axis=0)
+        rotations = tf.constant(2*np.pi/self.n_rotations, dtype=tf.float32)*tf.range(0, self.n_rotations, dtype=tf.float32)
+        rotation_freqs = tf.tensordot(tf.range(-self.n_freqs, self.n_freqs+1, dtype=tf.float32), rotations, axes=0) # tensor product with output dim [2*n_freqs+1, n_rotations]
+        rotation_freqs = tf.math.exp(tf.dtypes.complex(tf.constant(0., dtype=tf.float32), rotation_freqs))
         return rotation_freqs
 
     def sample_waveforms(self, proj_freqs):  
         rotation_freqs = self.get_rotation_spectrum()
-        waveforms = tf.math.reduce_sum(tf.tensordot(proj_freqs, rotation_freqs, axes=[[2], [1]]), axis=-1)
+        waveforms = tf.tensordot(proj_freqs, rotation_freqs, axes=[[2], [0]]) # axes 2 and 0 are m dimension (filter frequency)
         # if not tf.math.reduce_all((imag_part:=tf.math.abs(tf.math.imag(waveforms))) < 1.e-5):
         #     print(waveforms[imag_part > 1.e-5])
         #     raise RuntimeError('Found large elements in imaginary part of waveforms')
