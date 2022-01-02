@@ -7,8 +7,8 @@ class RadialFrequencies(tf.keras.Model):
         super().__init__()
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim, activation=tf.nn.relu)
-        self.r_real = Dense(n_freqs+1, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones) 
-        self.r_imag = Dense(n_freqs, activation=tf.nn.relu, bias_initializer=tf.keras.initializers.ones)  
+        self.r_real = Dense(n_freqs+1, activation=tf.nn.relu) # bias_initializer=tf.keras.initializers.ones
+        self.r_imag = Dense(n_freqs, activation=tf.nn.relu)  
         
     def call(self, inputs):
         x_hidden = self.dense_1(inputs)
@@ -80,10 +80,10 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
 class WaveformDecoder(tf.keras.Model):
-    def __init__(self, kernel_size=3, n_kernels=10, hidden_dim=10, n_outputs=2):
+    def __init__(self, kernel_size=3, n_filters=10, hidden_dim=10, n_outputs=2):
         super().__init__()
-        self.conv_1 = Conv1D(n_kernels, kernel_size, padding='same', data_format='channels_last', activation='relu')
-        self.conv_2 = Conv1D(n_kernels, kernel_size, padding='same', data_format='channels_last', activation='relu')
+        self.conv_1 = Conv1D(n_filters, kernel_size, padding='same', data_format='channels_last', activation='relu')
+        self.conv_2 = Conv1D(n_filters, kernel_size, padding='same', data_format='channels_last', activation='relu')
         # self.conv_3 = Conv1D(1, kernel_size, padding='same', data_format='channels_last', activation='relu')
         self.add = Add()
         self.flatten = Flatten() 
@@ -91,7 +91,7 @@ class WaveformDecoder(tf.keras.Model):
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
         self.output_dense = Dense(n_outputs, activation=None)
         self.output_pred = Softmax()
-        
+
     def call(self, inputs):
         x_conv_out = self.conv_1(inputs)
         x_conv_in = self.add([x_conv_out, inputs])
@@ -107,10 +107,10 @@ class WaveformDecoder(tf.keras.Model):
 
 class TacoNet(tf.keras.Model):
     def __init__(self, feature_name_to_idx, hidden_dim_encoder=16, n_freqs=4, n_filters=10, n_rotations=32, 
-                    kernel_size=3, n_kernels=10, hidden_dim_decoder=10, n_outputs=2):
+                    kernel_size=3, n_conv_filters=10, hidden_dim_decoder=10, n_outputs=2):
         super().__init__()
         self.wave_encoder = WaveformEncoder(feature_name_to_idx, hidden_dim_encoder, n_freqs, n_filters, n_rotations)
-        self.wave_decoder = WaveformDecoder(kernel_size, n_kernels, hidden_dim_decoder, n_outputs)
+        self.wave_decoder = WaveformDecoder(kernel_size, n_conv_filters, hidden_dim_decoder, n_outputs)
         
     def call(self, inputs):
         waveforms = self.wave_encoder(inputs)

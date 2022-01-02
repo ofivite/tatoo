@@ -16,7 +16,7 @@ encoder_args:
 
 decoder_args:
   kernel_size: 4
-  n_kernels: 10
+  n_conv_filters: 10
   hidden_dim_decoder: 100
   n_outputs: 2
 

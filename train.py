@@ -61,7 +61,7 @@ def main(cfg: DictConfig) -> None:
 
     # define model
     model = TacoNet(feature_name_to_idx, cfg.encoder_args.hidden_dim_encoder, cfg.encoder_args.n_freqs, cfg.encoder_args.n_filters, cfg.encoder_args.n_rotations, 
-                        cfg.decoder_args.kernel_size, cfg.decoder_args.n_kernels, cfg.decoder_args.hidden_dim_decoder, cfg.decoder_args.n_outputs)
+                        cfg.decoder_args.kernel_size, cfg.decoder_args.n_conv_filters, cfg.decoder_args.hidden_dim_decoder, cfg.decoder_args.n_outputs)
 
     opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
     model.compile(optimizer=opt,
