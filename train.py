@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 from sklearn.metrics import roc_auc_score
 
 from utils.data_preprocessing import get_tau_arrays, preprocess_taus, awkward_to_ragged
-from model import TacoNet
+from model.taco import TacoNet
 
 tf.config.set_visible_devices([], device_type='GPU')
 tf.config.list_logical_devices()
