@@ -9,6 +9,7 @@ from sklearn.metrics import roc_auc_score
 
 from utils.data_preprocessing import get_tau_arrays, preprocess_taus, awkward_to_ragged
 from model.taco import TacoNet
+from model.transformer import Transformer
 
 tf.config.set_visible_devices([], device_type='GPU')
 tf.config.list_logical_devices()
@@ -62,6 +63,8 @@ def main(cfg: DictConfig) -> None:
     # define model
     if cfg.model.type == 'taco_net':
         model = TacoNet(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.decoder)
+    elif cfg.model.type == 'transformer':
+        model = Transformer(**cfg.model.kwargs)
     else:
         raise RuntimeError('Failed to infer model type')
 
@@ -74,8 +77,8 @@ def main(cfg: DictConfig) -> None:
 
     # compute metrics
     print("\n-> Evaluating performance")
-    train_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_train).batch(10000)
-    val_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_val).batch(10000)
+    train_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_train).batch(cfg.batch_size)
+    val_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_val).batch(cfg.batch_size)
     train_preds = model.predict(train_data_for_predict)
     val_preds = model.predict(val_data_for_predict)
     print('ROC AUC, train: ', roc_auc_score(train_labels, train_preds))

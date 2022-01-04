@@ -1,0 +1,8 @@
+type: transformer
+name: transformer_test
+kwargs:
+  num_layers: 5
+  dim_model: 3
+  num_heads: 8
+  dim_ff: 100
+  n_outputs: 2
