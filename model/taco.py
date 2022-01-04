@@ -106,11 +106,10 @@ class WaveformDecoder(tf.keras.Model):
         return outputs
 
 class TacoNet(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, hidden_dim_encoder=16, n_freqs=4, n_filters=10, n_rotations=32, 
-                    kernel_size=3, n_conv_filters=10, hidden_dim_decoder=10, n_outputs=2):
+    def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs):
         super().__init__()
-        self.wave_encoder = WaveformEncoder(feature_name_to_idx, hidden_dim_encoder, n_freqs, n_filters, n_rotations)
-        self.wave_decoder = WaveformDecoder(kernel_size, n_conv_filters, hidden_dim_decoder, n_outputs)
+        self.wave_encoder = WaveformEncoder(feature_name_to_idx, **encoder_kwargs)
+        self.wave_decoder = WaveformDecoder(**decoder_kwargs)
         
     def call(self, inputs):
         waveforms = self.wave_encoder(inputs)

@@ -14,7 +14,7 @@ tf.config.set_visible_devices([], device_type='GPU')
 tf.config.list_logical_devices()
 
 
-@hydra.main(config_path='.', config_name='train')
+@hydra.main(config_path='configs', config_name='train')
 def main(cfg: DictConfig) -> None:
 
     print('\n-> Retrieving input awkward arrays')
@@ -60,8 +60,10 @@ def main(cfg: DictConfig) -> None:
     del(a_train, a_val)
 
     # define model
-    model = TacoNet(feature_name_to_idx, cfg.encoder_args.hidden_dim_encoder, cfg.encoder_args.n_freqs, cfg.encoder_args.n_filters, cfg.encoder_args.n_rotations, 
-                        cfg.decoder_args.kernel_size, cfg.decoder_args.n_conv_filters, cfg.decoder_args.hidden_dim_decoder, cfg.decoder_args.n_outputs)
+    if cfg.model.type == 'taco_net':
+        model = TacoNet(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.decoder)
+    else:
+        raise RuntimeError('Failed to infer model type')
 
     opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
     model.compile(optimizer=opt,
@@ -81,7 +83,7 @@ def main(cfg: DictConfig) -> None:
 
     # save model
     print("\n-> Saving model")
-    model.save(to_absolute_path(f'models/{cfg.model_name}.tf'), save_format="tf")
+    model.save(to_absolute_path(f'models/{cfg.model.name}.tf'), save_format="tf")
 
 if __name__ == '__main__':
     main()

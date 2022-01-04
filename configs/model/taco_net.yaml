@@ -1,0 +1,13 @@
+type: taco_net
+name: taco_test
+kwargs:
+  encoder:
+    hidden_dim: 100
+    n_freqs: 4
+    n_filters: 10
+    n_rotations: 24
+  decoder:
+    kernel_size: 4
+    n_filters: 10
+    hidden_dim: 100
+    n_outputs: 2

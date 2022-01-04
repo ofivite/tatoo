@@ -1,24 +1,14 @@
+
+defaults:
+  - model@model: ???
+  - _self_
+
 # input data
 datasets:
   GluGluHToTauTau_M125: eventTuple_6
   TTToSemiLeptonic: eventTuple_80
   # DYJetsToLL_M-50-amcatnloFXFX_ext2: eventTuple_98
 tree_name: taus
-
-# model
-model_name: taco_test
-
-encoder_args:
-  hidden_dim_encoder: 100
-  n_freqs: 4
-  n_filters: 10
-  n_rotations: 24
-
-decoder_args:
-  kernel_size: 4
-  n_conv_filters: 10
-  hidden_dim_decoder: 100
-  n_outputs: 2
 
 # train/val info
 n_samples_train: 100000
