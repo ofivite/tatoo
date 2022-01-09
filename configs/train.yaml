@@ -3,6 +3,10 @@ defaults:
   - model@model: ???
   - _self_
 
+# mlflow
+path_to_mlflow: mlruns
+experiment_name: ???
+
 # input data
 datasets:
   tau:
