@@ -97,10 +97,10 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
 class WaveformDecoder(tf.keras.Model):
-    def __init__(self, n_conv_layers=5, kernel_size=3, n_filters=10, hidden_dim=10, n_outputs=2):
+    def __init__(self, n_conv_layers=5, kernel_size=3, n_conv_filters=10, hidden_dim=10, n_outputs=2):
         super().__init__()
         self.n_conv_layers = n_conv_layers
-        self.conv_layers = [Conv1D(n_filters, kernel_size, padding='same', data_format='channels_last', activation='relu') for _ in range(self.n_conv_layers)]
+        self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='same', data_format='channels_last', activation='relu') for _ in range(self.n_conv_layers)]
         self.flatten = Flatten() 
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
