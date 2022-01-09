@@ -97,12 +97,10 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
 class WaveformDecoder(tf.keras.Model):
-    def __init__(self, kernel_size=3, n_filters=10, hidden_dim=10, n_outputs=2):
+    def __init__(self, n_conv_layers=5, kernel_size=3, n_filters=10, hidden_dim=10, n_outputs=2):
         super().__init__()
-        self.conv_1 = Conv1D(n_filters, kernel_size, padding='same', data_format='channels_last', activation='relu')
-        self.conv_2 = Conv1D(n_filters, kernel_size, padding='same', data_format='channels_last', activation='relu')
-        # self.conv_3 = Conv1D(1, kernel_size, padding='same', data_format='channels_last', activation='relu')
-        self.add = Add()
+        self.n_conv_layers = n_conv_layers
+        self.conv_layers = [Conv1D(n_filters, kernel_size, padding='same', data_format='channels_last', activation='relu') for _ in range(self.n_conv_layers)]
         self.flatten = Flatten() 
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
@@ -110,12 +108,10 @@ class WaveformDecoder(tf.keras.Model):
         self.output_pred = Softmax()
 
     def call(self, inputs):
-        x_conv_out = self.conv_1(inputs)
-        x_conv_in = self.add([x_conv_out, inputs])
-        x_conv_out = self.conv_2(x_conv_in)
-        x_conv_in = self.add([x_conv_out, inputs])
-        # x_conv = self.conv_3(x_conv)
-        # x_conv = tf.squeeze(x_conv, axis=-1)
+        x_conv_in = inputs 
+        for i in range(self.n_conv_layers):
+            x_conv_out = self.conv_layers[i](x_conv_in)
+            x_conv_in = x_conv_out + inputs
         x_conv_out = self.flatten(x_conv_in)
         x_dense = self.dense_1(x_conv_out)
         x_dense = self.dense_2(x_dense)

@@ -11,7 +11,8 @@ kwargs:
     n_filters: 15
     n_rotations: 45
   decoder:
-    kernel_size: 4
-    n_filters: 10
+    n_conv_layers: 5
+    kernel_size: 3
+    n_filters: 15
     hidden_dim: 100
     n_outputs: 2
