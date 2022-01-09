@@ -1,5 +1,5 @@
 type: taco_net
-name: taco_test
+name: taco_test_vs_${vs_type}
 kwargs:
   encoder:
     hidden_dim: 100

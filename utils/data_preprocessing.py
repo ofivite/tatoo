@@ -27,7 +27,7 @@ def get_tau_arrays(datasets, tree_name):
         arrays.append(a)
     return ak.concatenate(arrays, axis=0)
 
-def preprocess_taus(a):
+def preprocess_taus(a, vs_type, n_samples_train, n_samples_val):
     # remove taus with abnormal phi
     a = a[np.abs(a['tau_phi'])<2.*np.pi] 
 
@@ -39,16 +39,30 @@ def preprocess_taus(a):
     # add features
     a['pfCand', 'dphi'] = dphi_array
     a['pfCand', 'deta'] = a['pfCand', 'eta'] - a['tau_eta']
-    a['pfCand', 'rel_pt'] = a['pfCand', 'pt']/a['tau_pt']
+    a['pfCand', 'rel_pt'] = a['pfCand', 'pt'] / a['tau_pt']
     a['pfCand', 'r'] = np.sqrt(np.square(a['pfCand', 'deta']) + np.square(a['pfCand', 'dphi']))
     a['pfCand', 'theta'] = np.arctan2(a['pfCand', 'dphi'], a['pfCand', 'deta']) # dphi -> y, deta -> x
-    return a
+    a['pfCand', 'particle_type'] = a['pfCand', 'particleType'] - 1
+
+    # select classes 
+    a_taus = a[a['node_tau'] == 1]
+    a_vs_type = a[a[f'node_{vs_type}'] == 1]
+
+    # concat classes & shuffle
+    a_train = ak.concatenate([a_taus[:n_samples_train], a_vs_type[:n_samples_train]], axis=0)
+    a_val = ak.concatenate([a_taus[n_samples_train:n_samples_train+n_samples_val], \
+                            a_vs_type[n_samples_train:n_samples_train+n_samples_val]], axis=0)
+    a_train = a_train[np.random.permutation(len(a_train))]
+    a_val = a_val[np.random.permutation(len(a_val))]
+
+    return a_train, a_val
 
 def awkward_to_ragged(a, feature_names):
-    pf_lengths = ak.count(a['pfCand', 'deta'], axis=1)
+    pf_lengths = ak.count(a['pfCand', 'pt'], axis=1)
     ragged_pf_features = []
     for feature in feature_names:
         pf_a = ak.flatten(a['pfCand', feature])
+        pf_a = ak.values_astype(pf_a, np.float32)
         ragged_pf_features.append(tf.RaggedTensor.from_row_lengths(pf_a, pf_lengths))
     ragged_pf = tf.stack(ragged_pf_features, axis=-1)
     return ragged_pf

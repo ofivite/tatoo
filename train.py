@@ -22,23 +22,16 @@ def main(cfg: DictConfig) -> None:
     a = get_tau_arrays(cfg.datasets, cfg.tree_name)
     
     print('\n-> Preprocessing')
-    a = preprocess_taus(a)
-    a_taus = a[a['node_tau'] == 1]
-    a_jets = a[a['node_jet'] == 1]
-    a_train = ak.concatenate([a_taus[:cfg.n_samples_train], a_jets[:cfg.n_samples_train]], axis=0)
-    a_val = ak.concatenate([a_taus[cfg.n_samples_train:cfg.n_samples_train+cfg.n_samples_val], \
-                            a_jets[cfg.n_samples_train:cfg.n_samples_train+cfg.n_samples_val]], axis=0)
-    a_train = a_train[np.random.permutation(len(a_train))]
-    a_val = a_val[np.random.permutation(len(a_val))]
-    
+    a_train, a_val = preprocess_taus(a, cfg.vs_type, cfg.n_samples_train, cfg.n_samples_val)
+    del(a)
+
     print('\n-> Preparing TF datasets')
     feature_name_to_idx = {name: cfg.feature_names.index(name) for name in cfg.feature_names}
     ragged_pf_train = awkward_to_ragged(a_train, cfg.feature_names)
     ragged_pf_val = awkward_to_ragged(a_val, cfg.feature_names)
-    del(a_taus, a_jets, a)
 
     # add train labels
-    train_labels = ak.to_pandas(a_train[['node_tau', 'node_jet']])
+    train_labels = ak.to_pandas(a_train[['node_tau', f'node_{cfg.vs_type}']])
     print(train_labels.value_counts())
     train_labels = train_labels.values
 
@@ -49,7 +42,7 @@ def main(cfg: DictConfig) -> None:
     train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
 
     # add validation labels
-    val_labels = ak.to_pandas(a_val[['node_tau', 'node_jet']])
+    val_labels = ak.to_pandas(a_val[['node_tau', f'node_{cfg.vs_type}']])
     print(val_labels.value_counts())
     val_labels = val_labels.values
 
