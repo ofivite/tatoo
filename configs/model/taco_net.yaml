@@ -2,10 +2,14 @@ type: taco_net
 name: taco_test_vs_${vs_type}
 kwargs:
   encoder:
-    hidden_dim: 100
-    n_freqs: 4
-    n_filters: 10
-    n_rotations: 24
+    emb_feature: 'particle_type'
+    emb_dim_in: 7
+    emb_dim_out: 2
+    hidden_dim_emb: 100
+    hidden_dim_radial: 100
+    n_freqs: 5
+    n_filters: 15
+    n_rotations: 45
   decoder:
     kernel_size: 4
     n_filters: 10

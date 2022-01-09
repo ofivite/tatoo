@@ -1,30 +1,48 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Conv1D, Flatten, Add, Softmax
+from tensorflow.keras.layers import Dense, Embedding, Conv1D, Flatten, Softmax
 
-class RadialFrequencies(tf.keras.Model):
+class RadialFrequencies(tf.keras.layers.Layer):
     def __init__(self, hidden_dim, n_freqs):
         super().__init__()
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
-        self.dense_2 = Dense(hidden_dim, activation=tf.nn.relu)
+        # self.dense_2 = Dense(hidden_dim, activation=tf.nn.relu)
         self.r_real = Dense(n_freqs+1, activation=tf.nn.relu) # bias_initializer=tf.keras.initializers.ones
         self.r_imag = Dense(n_freqs, activation=tf.nn.relu)  
         
     def call(self, inputs):
         x_hidden = self.dense_1(inputs)
-        x_hidden = self.dense_2(x_hidden)
+        # x_hidden = self.dense_2(x_hidden)
         r_real = self.r_real(x_hidden)
         r_imag = self.r_imag(x_hidden)
         return r_real, r_imag
 
+class FeatureEmbedding(tf.keras.layers.Layer):
+    def __init__(self, emb_feature_idx, emb_dim_in, emb_dim_out, hidden_dim, dim_out):
+        super().__init__()
+        self.emb_feature_idx = emb_feature_idx
+        self.dense_hidden = Dense(hidden_dim, activation=tf.nn.relu)
+        self.dense_out = Dense(dim_out, activation=tf.nn.relu) 
+        self.embedding = Embedding(emb_dim_in, emb_dim_out)
+        
+    def call(self, inputs):
+        x_emb = self.embedding(inputs[..., self.emb_feature_idx])
+        x_inputs = tf.concat([inputs[..., :self.emb_feature_idx], inputs[..., self.emb_feature_idx+1:], x_emb], axis=-1)
+        x_out = self.dense_out(self.dense_hidden(x_inputs))
+        z = tf.dtypes.complex(x_out, 0)[..., tf.newaxis] # axis for frequency dimensions
+        return z
+
 class WaveformEncoder(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, hidden_dim=16, n_freqs=4, n_filters=10, n_rotations=32):
+    def __init__(self, feature_name_to_idx, emb_feature, emb_dim_in, emb_dim_out=2, hidden_dim_emb=16, hidden_dim_radial=16, n_freqs=4, n_filters=10, n_rotations=32):
         super().__init__()
         self.feature_name_to_idx = feature_name_to_idx
         self.n_freqs = n_freqs
         self.n_filters = n_filters
         self.n_rotations = n_rotations
-        self.radial_models = [RadialFrequencies(hidden_dim, n_freqs) for _ in range(self.n_filters)]
+        self.radial_models = [RadialFrequencies(hidden_dim=hidden_dim_radial, n_freqs=self.n_freqs) 
+                                                    for _ in range(self.n_filters)]
+        self.feature_embedding = FeatureEmbedding(emb_feature_idx=self.feature_name_to_idx[emb_feature], emb_dim_in=emb_dim_in, emb_dim_out=emb_dim_out, 
+                                                  hidden_dim=hidden_dim_emb, dim_out=self.n_filters)
     
     @staticmethod    
     def to_complex(real, imag):
@@ -65,8 +83,7 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
     def project_onto_filters(self, inputs, filter_freqs):
-        z = inputs[..., self.feature_name_to_idx['pt']]
-        z = tf.dtypes.complex(z, 0)[..., tf.newaxis, tf.newaxis] # axes for filter and frequency dimensions
+        z = self.feature_embedding(inputs)
         proj_freqs = tf.math.reduce_sum(tf.multiply(z, filter_freqs), axis=1) # sum over constituents
         # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
         return proj_freqs
