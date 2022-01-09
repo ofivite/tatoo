@@ -19,8 +19,8 @@ tf.config.list_logical_devices()
 def main(cfg: DictConfig) -> None:
 
     print('\n-> Retrieving input awkward arrays')
-    a = get_tau_arrays(cfg.datasets, cfg.tree_name)
-    
+    a = get_tau_arrays(cfg.datasets, cfg.vs_type, cfg.tree_name)
+
     print('\n-> Preprocessing')
     a_train, a_val = preprocess_taus(a, cfg.vs_type, cfg.n_samples_train, cfg.n_samples_val)
     del(a)

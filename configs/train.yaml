@@ -5,15 +5,20 @@ defaults:
 
 # input data
 datasets:
-  GluGluHToTauTau_M125: eventTuple_6
-  TTToSemiLeptonic: eventTuple_80
-  # DYJetsToLL_M-50-amcatnloFXFX_ext2: eventTuple_98
+  tau:
+    GluGluHToTauTau_M125: ['eventTuple_6']
+  jet:
+    TTToSemiLeptonic: ['eventTuple_80']
+  e:
+    DYJetsToLL_M-50-amcatnloFXFX_ext2: ['eventTuple_98', 'eventTuple_980', 'eventTuple_981']
+  mu:
+    DYJetsToLL_M-50-amcatnloFXFX_ext2: ['eventTuple_98', 'eventTuple_980', 'eventTuple_981']
 tree_name: taus
 
 # train/val info
 vs_type: jet
-n_samples_train: 100000
-n_samples_val: 30000
+n_samples_train: 80000
+n_samples_val: 20000
 feature_names: ['r', 'theta', 'pt', 'particle_type']
 learning_rate: 0.001
 batch_size: 100

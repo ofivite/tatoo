@@ -12,20 +12,39 @@ def get_tau_targets(data_sample, file_name):
         targets = np.array(f.get('targets/block0_values'), dtype=np.int32)
     return pd.DataFrame(targets, columns=target_columns)
 
-def get_tau_arrays(datasets, tree_name):
-    # retrieve tau consituents
-    arrays = []
-    for data_sample, file_name in datasets.items():
+def get_tau_arrays(datasets, vs_type, tree_name):
+    taus = []
+    tau_types = ['tau', vs_type]
+    for tau_type in tau_types:
+        taus_per_type = []
+        for data_sample, file_names in datasets[tau_type].items():
+            print(f'      - {tau_type}: {data_sample}')
+            for file_name in file_names:
         with uproot.open(to_absolute_path(f'data/{data_sample}/{file_name}.root')) as f:
             a = f[tree_name].arrays(['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                         'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind',
                         'tau_decayMode', 'tau_decayModeFinding',], how='zip')
+                
         # add target labels
         targets = get_tau_targets(data_sample, file_name)
         for c in targets.columns: 
             a[c] = targets[c]
-        arrays.append(a)
-    return ak.concatenate(arrays, axis=0)
+            
+                # select classes 
+                a= a[a[f'node_{tau_type}'] == 1]
+                
+                # append to list of data arrays per vs_type
+                taus_per_type.append(a)
+        
+        # concat together data arrays per vs_type and select n_samples 
+        taus_per_type = ak.concatenate(taus_per_type, axis=0)
+        taus.append(taus_per_type)
+    
+    # concat all types together and shuffle
+    taus = ak.concatenate(taus, axis=0)
+    taus = taus[np.random.permutation(len(taus))]
+
+    return taus
 
 def preprocess_taus(a, vs_type, n_samples_train, n_samples_val):
     # remove taus with abnormal phi
