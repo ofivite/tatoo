@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Embedding, Conv1D, Flatten, Softmax
+from tensorflow.keras.layers import Dense, Embedding, Conv1D, Flatten, Softmax, GlobalAveragePooling1D
 
 class RadialFrequencies(tf.keras.layers.Layer):
     def __init__(self, hidden_dim, n_freqs):
@@ -100,8 +100,11 @@ class WaveformDecoder(tf.keras.Model):
     def __init__(self, n_conv_layers=5, kernel_size=3, n_conv_filters=10, hidden_dim=10, n_outputs=2):
         super().__init__()
         self.n_conv_layers = n_conv_layers
-        self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='same', data_format='channels_last', activation='relu') for _ in range(self.n_conv_layers)]
-        self.flatten = Flatten() 
+        self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='same',
+                                    data_format='channels_first', activation='relu') 
+                                    for i in range(self.n_conv_layers)]
+        # self.flatten = Flatten() 
+        self.pooling = GlobalAveragePooling1D(data_format='channels_first')
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
         self.output_dense = Dense(n_outputs, activation=None)
@@ -112,7 +115,8 @@ class WaveformDecoder(tf.keras.Model):
         for i in range(self.n_conv_layers):
             x_conv_out = self.conv_layers[i](x_conv_in)
             x_conv_in = x_conv_out + inputs
-        x_conv_out = self.flatten(x_conv_in)
+        # x_conv_out = self.flatten(x_conv_in)
+        x_conv_out = self.pooling(x_conv_in) # sum all rotations, keep only filter dim
         x_dense = self.dense_1(x_conv_out)
         x_dense = self.dense_2(x_dense)
         outputs = self.output_pred(self.output_dense(x_dense))
