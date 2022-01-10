@@ -20,15 +20,16 @@ def get_tau_arrays(datasets, vs_type, tree_name):
         for data_sample, file_names in datasets[tau_type].items():
             print(f'      - {tau_type}: {data_sample}')
             for file_name in file_names:
-        with uproot.open(to_absolute_path(f'data/{data_sample}/{file_name}.root')) as f:
-            a = f[tree_name].arrays(['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
-                        'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind',
-                        'tau_decayMode', 'tau_decayModeFinding',], how='zip')
+                with uproot.open(to_absolute_path(f'data/{data_sample}/{file_name}.root')) as f:
+                    a = f[tree_name].arrays(['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
+                                'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind', 
+                                'tau_byDeepTau2017v2p1VSjetraw', 'tau_byDeepTau2017v2p1VSmuraw', 'tau_byDeepTau2017v2p1VSeraw', 
+                                'tau_decayMode', 'tau_decayModeFinding',], how='zip')
                 
-        # add target labels
-        targets = get_tau_targets(data_sample, file_name)
-        for c in targets.columns: 
-            a[c] = targets[c]
+                # add target labels
+                targets = get_tau_targets(data_sample, file_name)
+                for c in targets.columns: 
+                    a[c] = targets[c]
             
                 # select classes 
                 a= a[a[f'node_{tau_type}'] == 1]
