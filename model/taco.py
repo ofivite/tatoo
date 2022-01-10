@@ -126,5 +126,5 @@ class TacoNet(tf.keras.Model):
         
     def call(self, inputs):
         waveforms = self.wave_encoder(inputs)
-        outputs = self.wave_decoder(waveforms[..., tf.newaxis])
+        outputs = self.wave_decoder(waveforms)
         return outputs

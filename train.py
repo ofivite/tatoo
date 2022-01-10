@@ -1,5 +1,4 @@
 import awkward as ak
-import numpy as np
 import tensorflow as tf
 
 import hydra
