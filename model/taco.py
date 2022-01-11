@@ -100,7 +100,8 @@ class WaveformDecoder(tf.keras.Model):
     def __init__(self, n_conv_layers=5, kernel_size=3, n_conv_filters=10, hidden_dim=10, n_outputs=2):
         super().__init__()
         self.n_conv_layers = n_conv_layers
-        self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='same',
+        self.kernel_size = kernel_size
+        self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='valid',
                                     data_format='channels_first', activation='relu') 
                                     for i in range(self.n_conv_layers)]
         # self.flatten = Flatten() 
@@ -110,9 +111,16 @@ class WaveformDecoder(tf.keras.Model):
         self.output_dense = Dense(n_outputs, activation=None)
         self.output_pred = Softmax()
 
+    def pad_waveforms(self, x):
+        n_add_left = int(np.floor((self.kernel_size-1)/2))
+        n_add_right = int(np.ceil((self.kernel_size-1)/2))
+        x_padded = tf.concat([x[..., -n_add_left:], x, x[..., :n_add_right]], axis=-1)
+        return x_padded
+
     def call(self, inputs):
         x_conv_in = inputs 
         for i in range(self.n_conv_layers):
+            x_conv_in = self.pad_waveforms(x_conv_in)
             x_conv_out = self.conv_layers[i](x_conv_in)
             x_conv_in = x_conv_out + inputs
         # x_conv_out = self.flatten(x_conv_in)
