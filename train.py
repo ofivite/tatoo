@@ -10,12 +10,11 @@ from utils.data_preprocessing import get_tau_arrays, preprocess_taus, awkward_to
 from model.taco import TacoNet
 from model.transformer import Transformer
 
-tf.config.set_visible_devices([], device_type='GPU')
+# tf.config.set_visible_devices([], device_type='GPU')
 tf.config.list_logical_devices()
 
 import mlflow
 from mlflow.tracking.context.git_context import _get_git_commit
-mlflow.tensorflow.autolog(log_models=True)
 
 @hydra.main(config_path='configs', config_name='train')
 def main(cfg: DictConfig) -> None:
@@ -85,7 +84,11 @@ def main(cfg: DictConfig) -> None:
         print(model.wave_decoder.summary())
         model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, verbose=1)
 
-        
+         # save model
+        print("\n-> Saving model")
+        model.save((f'{cfg.model.name}.tf'), save_format="tf")
+        mlflow.log_artifacts(f'{cfg.model.name}.tf', 'model')
+
         print("\n-> Evaluating performance")
         train_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_train).batch(cfg.batch_size)
         val_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_val).batch(cfg.batch_size)
@@ -112,10 +115,22 @@ def main(cfg: DictConfig) -> None:
             mlflow.log_params(cfg.model.kwargs.decoder)
         elif cfg.model.type == 'transformer':
             mlflow.log_params(cfg.model.kwargs)
-        with open(to_absolute_path(f'{cfg.path_to_mlflow}/{run_kwargs["experiment_id"]}/{run_id}/artifacts/model_summary.txt')) as f:
-            for l in f:
-                if (s:='Trainable params: ') in l:
-                    mlflow.log_param('n_train_params', int(l.split(s)[-1].replace(',', '')))
+        
+        # log N trainable params 
+        summary_list = []
+        model.summary(print_fn=summary_list.append)
+        for l in summary_list:
+            if (s:='Trainable params: ') in l:
+                mlflow.log_param('n_train_params', int(l.split(s)[-1].replace(',', '')))
+        
+        # log encoder & decoder summaries
+        if cfg.model.type == 'taco_net':
+            summary_list_encoder, summary_list_decoder = [], []
+            model.wave_encoder.summary(print_fn=summary_list_encoder.append)
+            model.wave_decoder.summary(print_fn=summary_list_decoder.append)
+            summary_encoder, summary_decoder = "\n".join(summary_list_encoder), "\n".join(summary_list_decoder)
+            mlflow.log_text(summary_encoder, artifact_file="encoder_summary.txt")
+            mlflow.log_text(summary_decoder, artifact_file="decoder_summary.txt") 
 
         # log misc. info
         mlflow.log_param('run_id', run_id)
