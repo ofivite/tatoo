@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Embedding, Conv1D, Flatten, Softmax, GlobalAveragePooling1D
+from tensorflow.keras.layers import ReLU, BatchNormalization
 
 class RadialFrequencies(tf.keras.layers.Layer):
     def __init__(self, hidden_dim, n_freqs):
@@ -31,6 +32,30 @@ class FeatureEmbedding(tf.keras.layers.Layer):
         x_out = self.dense_out(self.dense_hidden(x_inputs))
         z = tf.dtypes.complex(x_out, 0)[..., tf.newaxis,  tf.newaxis] # axis for filter and frequency dimensions (respectively) 
         return z
+
+class Conv1DBlock(tf.keras.layers.Layer):
+    def __init__(self, n_conv_layers=2, kernel_size=3, n_conv_filters=10):
+        super().__init__()
+        self.n_conv_layers = n_conv_layers
+        self.kernel_size = kernel_size
+        self.non_linearity = ReLU()
+        self.batch_norm = BatchNormalization(axis=2)
+        self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='valid',
+                                    data_format='channels_first', activation='relu') 
+                                    for i in range(self.n_conv_layers)]
+
+    def pad_waveforms(self, x):
+        n_add_left = int(np.floor((self.kernel_size-1)/2))
+        n_add_right = int(np.ceil((self.kernel_size-1)/2))
+        x_padded = tf.concat([x[..., -n_add_left:], x, x[..., :n_add_right]], axis=-1)
+        return x_padded
+
+    def call(self, inputs):
+        x_conv_in = self.batch_norm(self.non_linearity(inputs))
+        for i in range(self.n_conv_layers):
+            x_conv_in = self.pad_waveforms(x_conv_in)
+            x_conv_in = self.conv_layers[i](x_conv_in)
+        return x_conv_in
 
 class WaveformEncoder(tf.keras.Model):
     def __init__(self, feature_name_to_idx, cat_emb_feature, cat_emb_dim_in, cat_emb_dim_out=2, hidden_dim_emb=16, out_dim_emb=10, hidden_dim_radial=16, n_freqs=4, n_filters=10, n_rotations=32):
@@ -99,13 +124,12 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
 class WaveformDecoder(tf.keras.Model):
-    def __init__(self, n_conv_layers=5, kernel_size=3, n_conv_filters=10, hidden_dim=10, n_outputs=2):
+    def __init__(self, n_conv_blocks=5, n_conv_layers=2, kernel_size=3, n_conv_filters=10, hidden_dim=10, n_outputs=2):
         super().__init__()
-        self.n_conv_layers = n_conv_layers
+        self.n_conv_blocks = n_conv_blocks
         self.kernel_size = kernel_size
-        self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='valid',
-                                    data_format='channels_first', activation='relu') 
-                                    for i in range(self.n_conv_layers)]
+        self.conv_blocks = [Conv1DBlock(n_conv_layers=n_conv_layers, kernel_size=kernel_size, n_conv_filters=n_conv_filters) 
+                                    for _ in range(self.n_conv_blocks)]
         self.flatten = Flatten() 
         # self.pooling = GlobalAveragePooling1D(data_format='channels_first')
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
@@ -113,23 +137,16 @@ class WaveformDecoder(tf.keras.Model):
         self.output_dense = Dense(n_outputs, activation=None)
         self.output_softmax = Softmax()
 
-    def pad_waveforms(self, x):
-        n_add_left = int(np.floor((self.kernel_size-1)/2))
-        n_add_right = int(np.ceil((self.kernel_size-1)/2))
-        x_padded = tf.concat([x[..., -n_add_left:], x, x[..., :n_add_right]], axis=-1)
-        return x_padded
-
     def call(self, inputs):
-        x_conv_in = inputs 
-        for i in range(self.n_conv_layers):
-            x_conv_in = self.pad_waveforms(x_conv_in)
-            x_conv_out = self.conv_layers[i](x_conv_in)
-            x_conv_in = x_conv_out + inputs
+        x_block_in = inputs 
+        for i in range(self.n_conv_blocks):
+            x_block_out = self.conv_blocks[i](x_block_in)
+            x_block_in = x_block_out + inputs
         # x_conv_out = self.flatten(x_conv_in)
         # x_conv_out = self.pooling(x_conv_in) # sum all rotations, keep only filter dim
-        x_conv_out = tf.math.reduce_mean(x_conv_in, axis=-1) # global average pooling over rotation dim
-        x_conv_out = self.flatten(x_conv_out) # flatten emb x filter dimensions
-        x_dense = self.dense_1(x_conv_out)
+        x_block_out = tf.math.reduce_mean(x_block_in, axis=-1) # global average pooling over rotation dim
+        x_block_out = self.flatten(x_block_out) # flatten emb x filter dimensions
+        x_dense = self.dense_1(x_block_out)
         x_dense = self.dense_2(x_dense)
         outputs = self.output_softmax(self.output_dense(x_dense))
         return outputs

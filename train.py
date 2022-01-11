@@ -136,5 +136,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_param('run_id', run_id)
         mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
 
+        print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
+
 if __name__ == '__main__':
     main()
