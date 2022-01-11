@@ -18,22 +18,22 @@ class RadialFrequencies(tf.keras.layers.Layer):
         return r_real, r_imag
 
 class FeatureEmbedding(tf.keras.layers.Layer):
-    def __init__(self, emb_feature_idx, emb_dim_in, emb_dim_out, hidden_dim, dim_out):
+    def __init__(self, cat_emb_feature_idx, cat_emb_dim_in, cat_emb_dim_out, hidden_dim, out_dim):
         super().__init__()
-        self.emb_feature_idx = emb_feature_idx
+        self.cat_emb_feature_idx = cat_emb_feature_idx
         self.dense_hidden = Dense(hidden_dim, activation=tf.nn.relu)
-        self.dense_out = Dense(dim_out, activation=tf.nn.relu) 
-        self.embedding = Embedding(emb_dim_in, emb_dim_out)
+        self.dense_out = Dense(out_dim, activation=tf.nn.relu) 
+        self.embedding = Embedding(cat_emb_dim_in, cat_emb_dim_out)
         
     def call(self, inputs):
-        x_emb = self.embedding(inputs[..., self.emb_feature_idx])
-        x_inputs = tf.concat([inputs[..., :self.emb_feature_idx], inputs[..., self.emb_feature_idx+1:], x_emb], axis=-1)
+        x_emb = self.embedding(inputs[..., self.cat_emb_feature_idx])
+        x_inputs = tf.concat([inputs[..., :self.cat_emb_feature_idx], inputs[..., self.cat_emb_feature_idx+1:], x_emb], axis=-1)
         x_out = self.dense_out(self.dense_hidden(x_inputs))
-        z = tf.dtypes.complex(x_out, 0)[..., tf.newaxis] # axis for frequency dimensions
+        z = tf.dtypes.complex(x_out, 0)[..., tf.newaxis,  tf.newaxis] # axis for filter and frequency dimensions (respectively) 
         return z
 
 class WaveformEncoder(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, emb_feature, emb_dim_in, emb_dim_out=2, hidden_dim_emb=16, hidden_dim_radial=16, n_freqs=4, n_filters=10, n_rotations=32):
+    def __init__(self, feature_name_to_idx, cat_emb_feature, cat_emb_dim_in, cat_emb_dim_out=2, hidden_dim_emb=16, out_dim_emb=10, hidden_dim_radial=16, n_freqs=4, n_filters=10, n_rotations=32):
         super().__init__()
         self.feature_name_to_idx = feature_name_to_idx
         self.n_freqs = n_freqs
@@ -41,8 +41,8 @@ class WaveformEncoder(tf.keras.Model):
         self.n_rotations = n_rotations
         self.radial_models = [RadialFrequencies(hidden_dim=hidden_dim_radial, n_freqs=self.n_freqs) 
                                                     for _ in range(self.n_filters)]
-        self.feature_embedding = FeatureEmbedding(emb_feature_idx=self.feature_name_to_idx[emb_feature], emb_dim_in=emb_dim_in, emb_dim_out=emb_dim_out, 
-                                                  hidden_dim=hidden_dim_emb, dim_out=self.n_filters)
+        self.feature_embedding = FeatureEmbedding(cat_emb_feature_idx=self.feature_name_to_idx[cat_emb_feature], cat_emb_dim_in=cat_emb_dim_in, cat_emb_dim_out=cat_emb_dim_out, 
+                                                  hidden_dim=hidden_dim_emb, out_dim=out_dim_emb)
     
     @staticmethod    
     def to_complex(real, imag):
@@ -75,7 +75,7 @@ class WaveformEncoder(tf.keras.Model):
 
     def sample_waveforms(self, proj_freqs):  
         rotation_freqs = self.get_rotation_spectrum()
-        waveforms = tf.tensordot(proj_freqs, rotation_freqs, axes=[[2], [0]]) # axes 2 and 0 are m dimension (filter frequency)
+        waveforms = tf.tensordot(proj_freqs, rotation_freqs, axes=[[3], [0]]) # axes 3 and 0 are m dimension (frequency)
         # if not tf.math.reduce_all((imag_part:=tf.math.abs(tf.math.imag(waveforms))) < 1.e-5):
         #     print(waveforms[imag_part > 1.e-5])
         #     raise RuntimeError('Found large elements in imaginary part of waveforms')
@@ -83,17 +83,19 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
     def project_onto_filters(self, inputs, filter_freqs):
-        z = self.feature_embedding(inputs)
-        proj_freqs = tf.math.reduce_sum(tf.multiply(z, filter_freqs), axis=1) # sum over constituents
+        z = self.feature_embedding(inputs) # [batch, None, emb, 1, 1]
+        proj_freqs = tf.multiply(z, filter_freqs) # [batch, None, emb, filter, freq]
+        proj_freqs = tf.math.reduce_sum(proj_freqs, axis=1) # [batch, emb, filter, freq] - sum over constituents 
         # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
         return proj_freqs
 
     def call(self, inputs):
-        r_freqs = self.get_radial_spectrum(inputs)
-        azim_freqs = self.get_azim_spectrum(inputs)
-        filter_freqs = tf.math.multiply(r_freqs, azim_freqs)
-        proj_freqs = self.project_onto_filters(inputs, filter_freqs)
-        waveforms = self.sample_waveforms(proj_freqs)
+        r_freqs = self.get_radial_spectrum(inputs) # [batch, None, filter, freq]
+        azim_freqs = self.get_azim_spectrum(inputs) # [batch, None, 1, freq]
+        filter_freqs = tf.math.multiply(r_freqs, azim_freqs) # [batch, None, filter, freq]
+        filter_freqs = filter_freqs[..., tf.newaxis, :, :] # [batch, None, 1, filter, freq]
+        proj_freqs = self.project_onto_filters(inputs, filter_freqs) # [batch, emb, filter, freq]
+        waveforms = self.sample_waveforms(proj_freqs) # [batch, emb, filter, rotation]
         return waveforms
 
 class WaveformDecoder(tf.keras.Model):
@@ -104,12 +106,12 @@ class WaveformDecoder(tf.keras.Model):
         self.conv_layers = [Conv1D(n_conv_filters, kernel_size, padding='valid',
                                     data_format='channels_first', activation='relu') 
                                     for i in range(self.n_conv_layers)]
-        # self.flatten = Flatten() 
-        self.pooling = GlobalAveragePooling1D(data_format='channels_first')
+        self.flatten = Flatten() 
+        # self.pooling = GlobalAveragePooling1D(data_format='channels_first')
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
         self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
         self.output_dense = Dense(n_outputs, activation=None)
-        self.output_pred = Softmax()
+        self.output_softmax = Softmax()
 
     def pad_waveforms(self, x):
         n_add_left = int(np.floor((self.kernel_size-1)/2))
@@ -124,10 +126,12 @@ class WaveformDecoder(tf.keras.Model):
             x_conv_out = self.conv_layers[i](x_conv_in)
             x_conv_in = x_conv_out + inputs
         # x_conv_out = self.flatten(x_conv_in)
-        x_conv_out = self.pooling(x_conv_in) # sum all rotations, keep only filter dim
+        # x_conv_out = self.pooling(x_conv_in) # sum all rotations, keep only filter dim
+        x_conv_out = tf.math.reduce_mean(x_conv_in, axis=-1) # global average pooling over rotation dim
+        x_conv_out = self.flatten(x_conv_out) # flatten emb x filter dimensions
         x_dense = self.dense_1(x_conv_out)
         x_dense = self.dense_2(x_dense)
-        outputs = self.output_pred(self.output_dense(x_dense))
+        outputs = self.output_softmax(self.output_dense(x_dense))
         return outputs
 
 class TacoNet(tf.keras.Model):
