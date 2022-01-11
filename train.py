@@ -81,7 +81,8 @@ def main(cfg: DictConfig) -> None:
         model.compile(optimizer=opt,
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
                     metrics=['accuracy'])
-
+        print(model.wave_encoder.summary())
+        print(model.wave_decoder.summary())
         model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, verbose=1)
 
         

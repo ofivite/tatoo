@@ -24,6 +24,6 @@ vs_type: jet
 n_samples_train: 80000
 n_samples_val: 20000
 feature_names: ['r', 'theta', 'pt', 'particle_type']
-learning_rate: 0.001
-batch_size: 100
+learning_rate: 0.0001
+batch_size: 250
 n_epochs: 1

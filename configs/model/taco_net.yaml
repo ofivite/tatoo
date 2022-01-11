@@ -4,7 +4,7 @@ kwargs:
   encoder:
     emb_feature: 'particle_type'
     emb_dim_in: 7
-    emb_dim_out: 2
+    emb_dim_out: 3
     hidden_dim_emb: 100
     hidden_dim_radial: 100
     n_freqs: 5
