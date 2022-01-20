@@ -14,17 +14,17 @@ def get_tau_targets(data_sample, file_name):
 
 def get_tau_arrays(data_cfg):
     taus = []
-    for sample, tau_types in data_cfg.input_samples.items():
-        target_selection = ' | '.join([f'(tauType=={data_cfg.target_map[tau_type]})' for tau_type in tau_types]) # select only taus of required classes
+    for sample, tau_types in data_cfg['input_samples'].items():
+        target_selection = ' | '.join([f'(tauType=={data_cfg["target_map"][tau_type]})' for tau_type in tau_types]) # select only taus of required classes
         print(f'      - {sample}')
         
         # open ROOT file and retireve awkward arrays
         with uproot.open(to_absolute_path(f'{sample}.root')) as f:
-            a = f[data_cfg.tree_name].arrays(data_cfg.input_branches, cut=target_selection, how='zip')
+            a = f[data_cfg['tree_name']].arrays(data_cfg['input_branches'], cut=target_selection, how='zip')
                 
             # add target labels
             for tau_type in tau_types:
-                a[f'node_{tau_type}'] = ak.values_astype(a['tauType'] == data_cfg.target_map[tau_type], np.int32)
+                a[f'node_{tau_type}'] = ak.values_astype(a['tauType'] == data_cfg['target_map'][tau_type], np.int32)
                 n_samples = np.sum(a[f'node_{tau_type}'])
                 print(f'          {tau_type}: {n_samples} samples')
 
