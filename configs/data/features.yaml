@@ -1,1 +1,1 @@
-feature_names: ['r', 'theta', 'rel_pt', 'particle_type']
+feature_names: ['r', 'theta', 'pt', 'particle_type']

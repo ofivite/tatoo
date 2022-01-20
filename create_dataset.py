@@ -41,8 +41,12 @@ def main(cfg: DictConfig) -> None:
     path_to_val_dataset = to_absolute_path(f'datasets/{cfg.dataset_name}/val/{cfg.vs_type}')
     if os.path.exists(path_to_train_dataset):
         shutil.rmtree(path_to_train_dataset)
+    else:
+        os.makedirs(path_to_train_dataset, exist_ok=True)
     if os.path.exists(path_to_val_dataset):
         shutil.rmtree(path_to_val_dataset)
+    else:
+        os.makedirs(path_to_val_dataset, exist_ok=True)
 
     # save
     print('\n-> Saving TF datasets')
