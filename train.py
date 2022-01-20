@@ -1,17 +1,19 @@
-import awkward as ak
-import tensorflow as tf
-
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
 from sklearn.metrics import roc_auc_score
 
-from utils.data_preprocessing import get_tau_arrays, preprocess_taus, awkward_to_ragged
+import tensorflow as tf
+
 from model.taco import TacoNet
 from model.transformer import Transformer
 
 # tf.config.set_visible_devices([], device_type='GPU')
-tf.config.list_logical_devices()
+# tf.config.list_logical_devices()
+physical_devices = tf.config.list_physical_devices('GPU') 
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
+tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
+    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=3*1024)])
 
 import mlflow
 from mlflow.tracking.context.git_context import _get_git_commit
@@ -28,46 +30,16 @@ def main(cfg: DictConfig) -> None:
         experiment_id = mlflow.create_experiment(cfg.experiment_name)
         run_kwargs = {'experiment_id': experiment_id}
 
-    print('\n-> Retrieving input awkward arrays')
-    a = get_tau_arrays(cfg.datasets, cfg.vs_type, cfg.tree_name)
-
-    print('\n-> Preprocessing')
-    a_train, a_val = preprocess_taus(a, cfg.vs_type, cfg.n_samples_train, cfg.n_samples_val)
-    del(a)
-
-    print('\n-> Preparing TF datasets')
-    feature_name_to_idx = {name: cfg.feature_names.index(name) for name in cfg.feature_names}
-    ragged_pf_train = awkward_to_ragged(a_train, cfg.feature_names)
-    ragged_pf_val = awkward_to_ragged(a_val, cfg.feature_names)
-
-    # add train labels
-    train_labels = ak.to_pandas(a_train[['node_tau', f'node_{cfg.vs_type}']])
-    print(train_labels.value_counts())
-    train_labels = train_labels.values
-
-    # create train data set
-    train_data = tf.data.Dataset.from_tensor_slices((ragged_pf_train, train_labels))
-    train_data = train_data.cache()
-    train_data = train_data.shuffle(len(train_labels)).batch(cfg.batch_size)
-    train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
-
-    # add validation labels
-    val_labels = ak.to_pandas(a_val[['node_tau', f'node_{cfg.vs_type}']])
-    print(val_labels.value_counts())
-    val_labels = val_labels.values
-
-    # create validation data set
-    val_data = tf.data.Dataset.from_tensor_slices((ragged_pf_val, val_labels))
-    val_data = val_data.cache()
-    val_data = val_data.shuffle(len(val_labels)).batch(cfg.batch_size)
-    val_data = val_data.prefetch(tf.data.experimental.AUTOTUNE)
-    del(a_train, a_val)
-
     # start mlflow run
     with mlflow.start_run(**run_kwargs) as active_run:
         run_id = active_run.info.run_id
         
+        # load datasets 
+        train_data = tf.data.experimental.load(to_absolute_path(f'datasets/{cfg.dataset_name}/train/{cfg.vs_type}'))
+        val_data = tf.data.experimental.load(to_absolute_path(f'datasets/{cfg.dataset_name}/val/{cfg.vs_type}'))
+
         # define model
+        feature_name_to_idx = {name: cfg.feature_names.index(name) for name in cfg.feature_names}
         if cfg.model.type == 'taco_net':
             model = TacoNet(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.decoder)
         elif cfg.model.type == 'transformer':
