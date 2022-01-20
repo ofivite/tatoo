@@ -1,0 +1,22 @@
+input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
+                  'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind', 'tauType',
+                  'tau_byDeepTau2017v2p1VSjetraw', 'tau_byDeepTau2017v2p1VSmuraw', 'tau_byDeepTau2017v2p1VSeraw', 
+                  'tau_decayMode', 'tau_decayModeFinding',]
+
+input_samples: # "sample_alias": [list of strings with tau types to be selected]
+  "data/SM/ShuffleMergeSpectral_100": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_101": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_102": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_103": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_104": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_105": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_106": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_107": ["tau", "${vs_type}"]
+  "data/SM/ShuffleMergeSpectral_108": ["tau", "${vs_type}"]
+
+tree_name: taus
+target_map:
+  e: 0
+  mu: 1
+  tau: 2
+  jet: 3

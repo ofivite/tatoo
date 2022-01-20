@@ -12,42 +12,42 @@ def get_tau_targets(data_sample, file_name):
         targets = np.array(f.get('targets/block0_values'), dtype=np.int32)
     return pd.DataFrame(targets, columns=target_columns)
 
-def get_tau_arrays(datasets, vs_type, tree_name):
+def get_tau_arrays(data_cfg):
     taus = []
-    tau_types = ['tau', vs_type]
-    for tau_type in tau_types:
-        taus_per_type = []
-        for data_sample, file_names in datasets[tau_type].items():
-            print(f'      - {tau_type}: {data_sample}')
-            for file_name in file_names:
-                with uproot.open(to_absolute_path(f'data/{data_sample}/{file_name}.root')) as f:
-                    a = f[tree_name].arrays(['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
-                                'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind', 
-                                'tau_byDeepTau2017v2p1VSjetraw', 'tau_byDeepTau2017v2p1VSmuraw', 'tau_byDeepTau2017v2p1VSeraw', 
-                                'tau_decayMode', 'tau_decayModeFinding',], how='zip')
-                
-                # add target labels
-                targets = get_tau_targets(data_sample, file_name)
-                for c in targets.columns: 
-                    a[c] = targets[c]
-            
-                # select classes 
-                a= a[a[f'node_{tau_type}'] == 1]
-                
-                # append to list of data arrays per vs_type
-                taus_per_type.append(a)
+    for sample, tau_types in data_cfg.input_samples.items():
+        target_selection = ' | '.join([f'(tauType=={data_cfg.target_map[tau_type]})' for tau_type in tau_types]) # select only taus of required classes
+        print(f'      - {sample}')
         
-        # concat together data arrays per vs_type and select n_samples 
-        taus_per_type = ak.concatenate(taus_per_type, axis=0)
-        taus.append(taus_per_type)
+        # open ROOT file and retireve awkward arrays
+        with uproot.open(to_absolute_path(f'{sample}.root')) as f:
+            a = f[data_cfg.tree_name].arrays(data_cfg.input_branches, cut=target_selection, how='zip')
+                
+            # add target labels
+            for tau_type in tau_types:
+                a[f'node_{tau_type}'] = ak.values_astype(a['tauType'] == data_cfg.target_map[tau_type], np.int32)
+                n_samples = np.sum(a[f'node_{tau_type}'])
+                print(f'          {tau_type}: {n_samples} samples')
+
+        # append to array list 
+        taus.append(a)
     
-    # concat all types together and shuffle
+    # concat all samples together and shuffle
     taus = ak.concatenate(taus, axis=0)
     taus = taus[np.random.permutation(len(taus))]
 
     return taus
 
-def preprocess_taus(a, vs_type, n_samples_train, n_samples_val):
+def awkward_to_ragged(a, feature_names):
+    pf_lengths = ak.count(a['pfCand', feature_names[0]], axis=1)
+    ragged_pf_features = []
+    for feature in feature_names:
+        pf_a = ak.flatten(a['pfCand', feature])
+        pf_a = ak.values_astype(pf_a, np.float32)
+        ragged_pf_features.append(tf.RaggedTensor.from_row_lengths(pf_a, pf_lengths))
+    ragged_pf = tf.stack(ragged_pf_features, axis=-1)
+    return ragged_pf
+
+def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val):
     # remove taus with abnormal phi
     a = a[np.abs(a['tau_phi'])<2.*np.pi] 
 
@@ -75,14 +75,16 @@ def preprocess_taus(a, vs_type, n_samples_train, n_samples_val):
     a_train = a_train[np.random.permutation(len(a_train))]
     a_val = a_val[np.random.permutation(len(a_val))]
 
-    return a_train, a_val
+    # split targets
+    targets_train = ak.to_pandas(a_train[['node_tau', f'node_{vs_type}']])
+    targets_val = ak.to_pandas(a_val[['node_tau', f'node_{vs_type}']])
+    print(targets_train.value_counts())
+    print(targets_val.value_counts())
+    targets_train = targets_train.values
+    targets_val = targets_val.values
 
-def awkward_to_ragged(a, feature_names):
-    pf_lengths = ak.count(a['pfCand', 'pt'], axis=1)
-    ragged_pf_features = []
-    for feature in feature_names:
-        pf_a = ak.flatten(a['pfCand', feature])
-        pf_a = ak.values_astype(pf_a, np.float32)
-        ragged_pf_features.append(tf.RaggedTensor.from_row_lengths(pf_a, pf_lengths))
-    ragged_pf = tf.stack(ragged_pf_features, axis=-1)
-    return ragged_pf
+    # convert to ragged arrays with only required features
+    X_train = awkward_to_ragged(a_train, feature_names)
+    X_val = awkward_to_ragged(a_val, feature_names)
+
+    return (X_train, targets_train), (X_val, targets_val)

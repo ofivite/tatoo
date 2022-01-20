@@ -1,0 +1,12 @@
+defaults:
+  - data@_global_: features
+  - data@data_cfg: input_samples
+  - _self_
+
+vs_type: ???
+dataset_name: 400k
+n_samples_train: 400000 # of each class
+n_samples_val: 30000 # of each class
+train_batch_size: 250
+val_batch_size: 1000
+shuffle_buffer_size: 10000
