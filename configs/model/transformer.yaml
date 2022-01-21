@@ -1,8 +1,11 @@
 type: transformer
 name: transformer_test
 kwargs:
-  num_layers: 5
-  dim_model: 3
+  num_layers: 6
+  dim_model: 128
+  dim_head_key: 16
+  dim_head_value: 16
   num_heads: 8
-  dim_ff: 100
+  dim_ff: 1024
+  dropout_rate: 0.1
   n_outputs: 2

@@ -13,7 +13,7 @@ from model.transformer import Transformer
 physical_devices = tf.config.list_physical_devices('GPU') 
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
-    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=3*1024)])
+    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=8*1024)])
 
 import mlflow
 from mlflow.tracking.context.git_context import _get_git_commit
