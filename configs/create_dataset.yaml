@@ -5,6 +5,8 @@ defaults:
 
 vs_type: ???
 dataset_name: ???
+
+cache: False
 n_samples_train: ??? # of each class
 n_samples_val: ??? # of each class
 train_batch_size: 250

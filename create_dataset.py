@@ -24,13 +24,15 @@ def main(cfg: DictConfig) -> None:
     print('\n-> Preparing TF datasets')
     # create train data set
     train_data = tf.data.Dataset.from_tensor_slices((X_train, y_train))
-    train_data = train_data.cache()
+    if cfg.cache:
+        train_data = train_data.cache()
     train_data = train_data.shuffle(cfg.shuffle_buffer_size).batch(cfg.train_batch_size)
     train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
 
     # create validation data set
     val_data = tf.data.Dataset.from_tensor_slices((X_val, y_val))
-    val_data = val_data.cache()
+    if cfg.cache:
+        val_data = val_data.cache()
     val_data = val_data.batch(cfg.val_batch_size)
     val_data = val_data.prefetch(tf.data.experimental.AUTOTUNE)
     time_3 = time.time()
