@@ -17,6 +17,7 @@ tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
 
 import mlflow
 from mlflow.tracking.context.git_context import _get_git_commit
+mlflow.tensorflow.autolog(log_models=False) 
 
 @hydra.main(config_path='configs', config_name='train')
 def main(cfg: DictConfig) -> None:
@@ -46,39 +47,29 @@ def main(cfg: DictConfig) -> None:
             model = Transformer(**cfg.model.kwargs)
         else:
             raise RuntimeError('Failed to infer model type')
+        X_, _ = next(iter(train_data))
+        model(X_) # init it for correct autologging with mlflow
         
-        model(ragged_pf_train[:1]) # build it for correct autologging with mlflow
+        # compile and fit
         opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
         model.compile(optimizer=opt,
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
-                    metrics=['accuracy'])
-        print(model.wave_encoder.summary())
-        print(model.wave_decoder.summary())
+                    metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
         model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, verbose=1)
 
          # save model
         print("\n-> Saving model")
         model.save((f'{cfg.model.name}.tf'), save_format="tf")
         mlflow.log_artifacts(f'{cfg.model.name}.tf', 'model')
-
-        print("\n-> Evaluating performance")
-        train_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_train).batch(cfg.batch_size)
-        val_data_for_predict = tf.data.Dataset.from_tensor_slices(ragged_pf_val).batch(cfg.batch_size)
-        train_preds = model.predict(train_data_for_predict)
-        val_preds = model.predict(val_data_for_predict)
-
-        # compute metrics
-        roc_auc_train = roc_auc_score(train_labels, train_preds)
-        roc_auc_val = roc_auc_score(val_labels, val_preds)
-        print('ROC AUC, train: ', roc_auc_train)
-        print('ROC AUC, val: ', roc_auc_val)
-        mlflow.log_metrics({'roc_auc': roc_auc_train, 'val_roc_auc': roc_auc_val})
+        if cfg.model.type == 'taco_net':
+            print(model.wave_encoder.summary())
+            print(model.wave_decoder.summary())
+        elif cfg.model.type == 'transformer':
+            print(model.summary())
 
         # log data params
         mlflow.log_param('vs_type', cfg.vs_type)
-        mlflow.log_params({f'dataset_tau_{i}': dataset for i, dataset in enumerate(cfg.datasets['tau'].keys())})
-        mlflow.log_params({f'dataset_vs_type_{i}': dataset for i, dataset in enumerate(cfg.datasets[cfg.vs_type].keys())})
-        mlflow.log_params({'n_samples_train': cfg.n_samples_train, 'n_samples_val': cfg.n_samples_val})
+        mlflow.log_param('dataset_name', cfg.dataset_name)
 
         # log model params
         mlflow.log_param('model_name', cfg.model.name)
