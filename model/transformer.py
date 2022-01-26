@@ -1,5 +1,7 @@
+from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, MultiHeadAttention, LayerNormalization, Dropout, Softmax
+from model.embedding import FeatureEmbedding
 
 class EncoderLayer(tf.keras.layers.Layer):
     def __init__(self, num_heads, dim_model, dim_head_key, dim_head_value, dim_ff, dropout_rate):
@@ -27,7 +29,7 @@ class EncoderLayer(tf.keras.layers.Layer):
         return out2
     
 class Encoder(tf.keras.layers.Layer):
-    def __init__(self, num_layers, dim_model, dim_head_key, dim_head_value, num_heads, dim_ff, dropout_rate):
+    def __init__(self, feature_name_to_idx, embedding_kwargs, num_layers, dim_model, dim_head_key, dim_head_value, num_heads, dim_ff, dropout_rate):
         super(Encoder, self).__init__()
 
         self.num_layers = num_layers
@@ -36,7 +38,14 @@ class Encoder(tf.keras.layers.Layer):
                                             for _ in range(self.num_layers)]
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
 
+        if isinstance(embedding_kwargs, DictConfig):
+            embedding_kwargs = OmegaConf.to_object(embedding_kwargs)
+        cat_emb_feature = embedding_kwargs.pop('cat_emb_feature')
+        embedding_kwargs['cat_emb_feature_idx'] = feature_name_to_idx[cat_emb_feature]
+        self.feature_embedding = FeatureEmbedding(**embedding_kwargs)
+
     def call(self, x, mask, training):
+        x = self.feature_embedding(x)
         x = self.dropout(x, training=training)
         for i in range(self.num_layers):
             x = self.enc_layers[i](x, mask, training)
@@ -44,23 +53,19 @@ class Encoder(tf.keras.layers.Layer):
         return x
 
 class Transformer(tf.keras.Model):
-    def __init__(self, num_layers, dim_model, dim_head_key, dim_head_value, num_heads, dim_ff, n_outputs, dropout_rate):
+    def __init__(self, feature_name_to_idx, encoder_kwargs, n_outputs):
         super().__init__()
-
-        self.embedding = Dense(dim_model, activation=None)
-        self.encoder = Encoder(num_layers=num_layers, dim_model=dim_model, 
-                               dim_head_key=dim_head_key, dim_head_value=dim_head_value, num_heads=num_heads, dim_ff=dim_ff, dropout_rate=dropout_rate)
+        self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
         self.output_dense = Dense(n_outputs, activation=None)
         self.output_pred = Softmax()
 
     def call(self, inputs, training):
         x = inputs.to_tensor() # pad ragged array to max constituent number and return normal tensor
-        x = self.embedding(x)
         mask = self.create_padding_mask(x)
         enc_padding_mask = tf.multiply(mask[:, :, tf.newaxis], mask[:, tf.newaxis, :])
         enc_padding_mask = enc_padding_mask[:, tf.newaxis, :, :] # additional axis for head dimension 
 
-        enc_output = self.encoder(x, enc_padding_mask, training) 
+        enc_output = self.encoder(x, enc_padding_mask, training)
         enc_output *= mask[...,  tf.newaxis] # mask padded entries prior to pooling 
         enc_output = tf.math.reduce_sum(enc_output, axis=1) # pooling by summing over constituent dimension
         output = self.output_pred(self.output_dense(enc_output))

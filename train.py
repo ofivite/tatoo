@@ -1,6 +1,6 @@
 import hydra
 from hydra.utils import to_absolute_path
-from omegaconf import DictConfig
+from omegaconf import OmegaConf, DictConfig
 from sklearn.metrics import roc_auc_score
 
 import tensorflow as tf
@@ -44,7 +44,7 @@ def main(cfg: DictConfig) -> None:
         if cfg.model.type == 'taco_net':
             model = TacoNet(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.decoder)
         elif cfg.model.type == 'transformer':
-            model = Transformer(**cfg.model.kwargs)
+            model = Transformer(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.n_outputs)
         else:
             raise RuntimeError('Failed to infer model type')
         X_, _ = next(iter(train_data))
@@ -72,12 +72,16 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_param('dataset_name', cfg.dataset_name)
 
         # log model params
+        params_encoder = OmegaConf.to_object(cfg.model.kwargs.encoder)
+        params_embedding = params_encoder.pop('embedding_kwargs')
+        params_embedding = {f'emb_{p}': v for p,v in params_embedding.items()}
         mlflow.log_param('model_name', cfg.model.name)
+        mlflow.log_params(params_encoder)
+        mlflow.log_params(params_embedding)
         if cfg.model.type == 'taco_net':
-            mlflow.log_params(cfg.model.kwargs.encoder)
             mlflow.log_params(cfg.model.kwargs.decoder)
         elif cfg.model.type == 'transformer':
-            mlflow.log_params(cfg.model.kwargs)
+            mlflow.log_param('n_outputs', cfg.model.kwargs.n_outputs)
         
         # log N trainable params 
         summary_list = []

@@ -1,11 +1,18 @@
+defaults:
+  - .@kwargs.encoder.embedding_kwargs: embedding
+  - _self_
+
 type: transformer
 name: transformer_test
 kwargs:
-  num_layers: 6
-  dim_model: 128
-  dim_head_key: 16
-  dim_head_value: 16
-  num_heads: 8
-  dim_ff: 1024
-  dropout_rate: 0.1
+  encoder:
+    embedding_kwargs: 
+      out_dim: ${model.kwargs.encoder.dim_model} # override embedding dim to dim_model
+    num_layers: 6
+    dim_model: 128
+    dim_head_key: 16
+    dim_head_value: 16
+    num_heads: 8
+    dim_ff: 1024
+    dropout_rate: 0.1
   n_outputs: 2

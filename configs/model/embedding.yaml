@@ -1,0 +1,5 @@
+cat_emb_feature: 'particle_type'
+cat_emb_dim_in: 7
+cat_emb_dim_out: 3
+hidden_dim: 100
+out_dim: 10

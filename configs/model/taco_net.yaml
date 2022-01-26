@@ -1,14 +1,11 @@
+defaults:
+  - .@kwargs.encoder.embedding_kwargs: embedding
+  - _self_
+  
 type: taco_net
 name: taco_test_vs_${vs_type}
 kwargs:
   encoder:
-    # 
-    cat_emb_feature: 'particle_type'
-    cat_emb_dim_in: 7
-    cat_emb_dim_out: 3
-    hidden_dim_emb: 100
-    out_dim_emb: 10
-    # 
     hidden_dim_radial: 100
     n_freqs: 5
     n_filters: 15

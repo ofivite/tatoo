@@ -1,7 +1,9 @@
+from omegaconf import OmegaConf, DictConfig
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Embedding, Conv1D, Flatten, Softmax, GlobalAveragePooling1D
+from tensorflow.keras.layers import Dense, Conv1D, Flatten, Softmax
 from tensorflow.keras.layers import ReLU, BatchNormalization
+from model.embedding import FeatureEmbedding
 
 class RadialFrequencies(tf.keras.layers.Layer):
     def __init__(self, hidden_dim, n_freqs):
@@ -17,21 +19,6 @@ class RadialFrequencies(tf.keras.layers.Layer):
         r_real = self.r_real(x_hidden)
         r_imag = self.r_imag(x_hidden)
         return r_real, r_imag
-
-class FeatureEmbedding(tf.keras.layers.Layer):
-    def __init__(self, cat_emb_feature_idx, cat_emb_dim_in, cat_emb_dim_out, hidden_dim, out_dim):
-        super().__init__()
-        self.cat_emb_feature_idx = cat_emb_feature_idx
-        self.dense_hidden = Dense(hidden_dim, activation=tf.nn.relu)
-        self.dense_out = Dense(out_dim, activation=tf.nn.relu) 
-        self.embedding = Embedding(cat_emb_dim_in, cat_emb_dim_out)
-        
-    def call(self, inputs):
-        x_emb = self.embedding(inputs[..., self.cat_emb_feature_idx])
-        x_inputs = tf.concat([inputs[..., :self.cat_emb_feature_idx], inputs[..., self.cat_emb_feature_idx+1:], x_emb], axis=-1)
-        x_out = self.dense_out(self.dense_hidden(x_inputs))
-        z = tf.dtypes.complex(x_out, 0)[..., tf.newaxis,  tf.newaxis] # axis for filter and frequency dimensions (respectively) 
-        return z
 
 class Conv1DBlock(tf.keras.layers.Layer):
     def __init__(self, n_conv_layers=2, kernel_size=3, n_conv_filters=10):
@@ -58,7 +45,7 @@ class Conv1DBlock(tf.keras.layers.Layer):
         return x_conv_in
 
 class WaveformEncoder(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, cat_emb_feature, cat_emb_dim_in, cat_emb_dim_out=2, hidden_dim_emb=16, out_dim_emb=10, hidden_dim_radial=16, n_freqs=4, n_filters=10, n_rotations=32):
+    def __init__(self, feature_name_to_idx, embedding_kwargs, hidden_dim_radial=16, n_freqs=4, n_filters=10, n_rotations=32):
         super().__init__()
         self.feature_name_to_idx = feature_name_to_idx
         self.n_freqs = n_freqs
@@ -66,8 +53,12 @@ class WaveformEncoder(tf.keras.Model):
         self.n_rotations = n_rotations
         self.radial_models = [RadialFrequencies(hidden_dim=hidden_dim_radial, n_freqs=self.n_freqs) 
                                                     for _ in range(self.n_filters)]
-        self.feature_embedding = FeatureEmbedding(cat_emb_feature_idx=self.feature_name_to_idx[cat_emb_feature], cat_emb_dim_in=cat_emb_dim_in, cat_emb_dim_out=cat_emb_dim_out, 
-                                                  hidden_dim=hidden_dim_emb, out_dim=out_dim_emb)
+        
+        if isinstance(embedding_kwargs, DictConfig):
+            embedding_kwargs = OmegaConf.to_object(embedding_kwargs)
+        cat_emb_feature = embedding_kwargs.pop('cat_emb_feature')
+        embedding_kwargs['cat_emb_feature_idx'] = self.feature_name_to_idx[cat_emb_feature]
+        self.feature_embedding = FeatureEmbedding(**embedding_kwargs)
     
     @staticmethod    
     def to_complex(real, imag):
@@ -108,7 +99,8 @@ class WaveformEncoder(tf.keras.Model):
         return waveforms
 
     def project_onto_filters(self, inputs, filter_freqs):
-        z = self.feature_embedding(inputs) # [batch, None, emb, 1, 1]
+        inputs_emb = self.feature_embedding(inputs) # [batch, None, emb]
+        z = tf.dtypes.complex(inputs_emb, 0)[..., tf.newaxis,  tf.newaxis] # axis for filter and frequency dimensions (respectively) 
         proj_freqs = tf.multiply(z, filter_freqs) # [batch, None, emb, filter, freq]
         proj_freqs = tf.math.reduce_sum(proj_freqs, axis=1) # [batch, emb, filter, freq] - sum over constituents 
         # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
@@ -142,8 +134,7 @@ class WaveformDecoder(tf.keras.Model):
         for i in range(self.n_conv_blocks):
             x_block_out = self.conv_blocks[i](x_block_in)
             x_block_in = x_block_out + inputs
-        # x_conv_out = self.flatten(x_conv_in)
-        # x_conv_out = self.pooling(x_conv_in) # sum all rotations, keep only filter dim
+
         x_block_out = tf.math.reduce_mean(x_block_in, axis=-1) # global average pooling over rotation dim
         x_block_out = self.flatten(x_block_out) # flatten emb x filter dimensions
         x_dense = self.dense_1(x_block_out)
