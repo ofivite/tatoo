@@ -56,18 +56,19 @@ class Transformer(tf.keras.Model):
     def call(self, inputs, training):
         x = inputs.to_tensor() # pad ragged array to max constituent number and return normal tensor
         x = self.embedding(x)
+        mask = self.create_padding_mask(x)
+        enc_padding_mask = tf.multiply(mask[:, :, tf.newaxis], mask[:, tf.newaxis, :])
+        enc_padding_mask = enc_padding_mask[:, tf.newaxis, :, :] # additional axis for head dimension 
 
-        # enc_padding_mask = self.create_padding_mask(x)
-        enc_padding_mask = None
         enc_output = self.encoder(x, enc_padding_mask, training) 
+        enc_output *= mask[...,  tf.newaxis] # mask padded entries prior to pooling 
         enc_output = tf.math.reduce_sum(enc_output, axis=1) # pooling by summing over constituent dimension
         output = self.output_pred(self.output_dense(enc_output))
 
         return output
 
     def create_padding_mask(self, seq):
-        mask = tf.math.reduce_all(tf.math.equal(seq, 0), axis=2)
-        mask = tf.cast(mask, dtype=tf.int32)
-        # mask = tf.tensordot(single_mask, single_mask, axes=0)
+        mask = tf.math.reduce_any(tf.math.not_equal(seq, 0), axis=-1) # [batch, seq], 0 -> padding, 1 -> constituent
+        mask = tf.cast(mask, tf.float32)
         
         return mask
