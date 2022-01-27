@@ -47,7 +47,7 @@ def awkward_to_ragged(a, feature_names):
     ragged_pf = tf.stack(ragged_pf_features, axis=-1)
     return ragged_pf
 
-def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val):
+def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val, return_deeptau_score=False):
     # remove taus with abnormal phi
     a = a[np.abs(a['tau_phi'])<2.*np.pi] 
 
@@ -87,4 +87,11 @@ def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val):
     X_train = awkward_to_ragged(a_train, feature_names)
     X_val = awkward_to_ragged(a_val, feature_names)
 
-    return (X_train, targets_train), (X_val, targets_val)
+    if return_deeptau_score:
+        deeptau_score_train = ak.to_pandas(a_train[f'tau_byDeepTau2017v2p1VS{vs_type}raw'])
+        deeptau_score_val = ak.to_pandas(a_val[f'tau_byDeepTau2017v2p1VS{vs_type}raw'])
+        deeptau_score_train = np.squeeze(deeptau_score_train.values)
+        deeptau_score_val = np.squeeze(deeptau_score_val.values)
+        return (X_train, targets_train, deeptau_score_train), (X_val, targets_val, deeptau_score_val)
+    else:
+        return (X_train, targets_train), (X_val, targets_val)
