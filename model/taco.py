@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, Conv1D, Flatten, Softmax
 from tensorflow.keras.layers import ReLU, BatchNormalization
-from model.embedding import FeatureEmbedding
+from models.embedding import FeatureEmbedding
 
 class RadialFrequencies(tf.keras.layers.Layer):
     def __init__(self, hidden_dim, n_freqs):

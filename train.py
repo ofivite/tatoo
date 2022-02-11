@@ -5,8 +5,8 @@ from sklearn.metrics import roc_auc_score
 
 import tensorflow as tf
 
-from model.taco import TacoNet
-from model.transformer import Transformer
+from models.taco import TacoNet
+from models.transformer import Transformer
 
 # tf.config.set_visible_devices([], device_type='GPU')
 # tf.config.list_logical_devices()
@@ -49,7 +49,7 @@ def main(cfg: DictConfig) -> None:
             raise RuntimeError('Failed to infer model type')
         X_, _ = next(iter(train_data))
         model(X_) # init it for correct autologging with mlflow
-        
+
         # compile and fit
         opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
         model.compile(optimizer=opt,
@@ -57,7 +57,7 @@ def main(cfg: DictConfig) -> None:
                     metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
         model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, verbose=1)
 
-         # save model
+        # save model
         print("\n-> Saving model")
         model.save((f'{cfg.model.name}.tf'), save_format="tf")
         mlflow.log_artifacts(f'{cfg.model.name}.tf', 'model')

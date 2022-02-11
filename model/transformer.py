@@ -1,7 +1,7 @@
 from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, MultiHeadAttention, LayerNormalization, Dropout, Softmax
-from model.embedding import FeatureEmbedding
+from models.embedding import FeatureEmbedding
 
 class EncoderLayer(tf.keras.layers.Layer):
     def __init__(self, num_heads, dim_model, dim_head_key, dim_head_value, dim_ff, dropout_rate):
