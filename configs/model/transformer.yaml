@@ -17,4 +17,4 @@ kwargs:
     dropout_rate: 0.1
   decoder:
     dim_ff_outputs: 100
-  n_outputs: 2
+    n_outputs: 2
