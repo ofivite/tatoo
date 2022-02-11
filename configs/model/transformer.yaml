@@ -15,4 +15,6 @@ kwargs:
     num_heads: 8
     dim_ff: 1024
     dropout_rate: 0.1
+  decoder:
+    dim_ff_outputs: 100
   n_outputs: 2

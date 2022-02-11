@@ -53,10 +53,12 @@ class Encoder(tf.keras.layers.Layer):
         return x
 
 class Transformer(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, encoder_kwargs, n_outputs):
+    def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs):
         super().__init__()
         self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
-        self.output_dense = Dense(n_outputs, activation=None)
+        self.dense_1 = Dense(decoder_kwargs['dim_ff_outputs'], activation='relu')
+        self.dense_2 = Dense(decoder_kwargs['dim_ff_outputs']//2, activation='relu')
+        self.output_dense = Dense(decoder_kwargs['n_outputs'], activation=None)
         self.output_pred = Softmax()
 
     def call(self, inputs, training):
@@ -68,7 +70,9 @@ class Transformer(tf.keras.Model):
         enc_output = self.encoder(x, enc_padding_mask, training)
         enc_output *= mask[...,  tf.newaxis] # mask padded entries prior to pooling 
         enc_output = tf.math.reduce_sum(enc_output, axis=1) # pooling by summing over constituent dimension
-        output = self.output_pred(self.output_dense(enc_output))
+        output = self.dense_1(enc_output)
+        output = self.dense_2(output)
+        output = self.output_pred(self.output_dense(output))
 
         return output
 

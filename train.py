@@ -44,7 +44,7 @@ def main(cfg: DictConfig) -> None:
         if cfg.model.type == 'taco_net':
             model = TacoNet(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.decoder)
         elif cfg.model.type == 'transformer':
-            model = Transformer(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.n_outputs)
+            model = Transformer(feature_name_to_idx, cfg.model.kwargs.encoder, cfg.model.kwargs.decoder)
         else:
             raise RuntimeError('Failed to infer model type')
         X_, _ = next(iter(train_data))
@@ -78,10 +78,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_param('model_name', cfg.model.name)
         mlflow.log_params(params_encoder)
         mlflow.log_params(params_embedding)
-        if cfg.model.type == 'taco_net':
-            mlflow.log_params(cfg.model.kwargs.decoder)
-        elif cfg.model.type == 'transformer':
-            mlflow.log_param('n_outputs', cfg.model.kwargs.n_outputs)
+        mlflow.log_params(cfg.model.kwargs.decoder)
         
         # log N trainable params 
         summary_list = []
