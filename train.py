@@ -52,10 +52,11 @@ def main(cfg: DictConfig) -> None:
 
         # compile and fit
         opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
+        callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.001, patience=2, mode='auto', restore_best_weights=True)
         model.compile(optimizer=opt,
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
                     metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
-        model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, verbose=1)
+        model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, callbacks=[callback], verbose=1)
 
         # save model
         print("\n-> Saving model")
