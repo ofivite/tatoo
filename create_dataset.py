@@ -3,7 +3,7 @@ import time
 import shutil
 import hydra
 from hydra.utils import to_absolute_path
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from utils.data_preprocessing import get_tau_arrays, preprocess_taus
 import tensorflow as tf
 
@@ -54,6 +54,7 @@ def main(cfg: DictConfig) -> None:
     print('\n-> Saving TF datasets')
     tf.data.experimental.save(train_data, path_to_train_dataset)
     tf.data.experimental.save(val_data, path_to_val_dataset)
+    OmegaConf.save(config=cfg, f=to_absolute_path(f'datasets/{cfg.dataset_name}/cfg.yml'))
     time_4 = time.time()
     print(f'took: {time_4 - time_3}') 
     print(f'total time: {(time_4-time_0):.1f} s.\n') 
