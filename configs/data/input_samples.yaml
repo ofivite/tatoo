@@ -1,7 +1,13 @@
 input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                   'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind', 'tauType',
                   'tau_byDeepTau2017v2p1VSjetraw', 'tau_byDeepTau2017v2p1VSmuraw', 'tau_byDeepTau2017v2p1VSeraw', 
-                  'tau_decayMode', 'tau_decayModeFinding',]
+                  'tau_decayMode', 'tau_decayModeFinding', 'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z',
+                  'pv_x', 'pv_y', 'pv_z', 'pfCand_vertex_x', 'pfCand_vertex_y', 'pfCand_vertex_z',
+                  'pfCand_charge', 'pfCand_pvAssociationQuality', 'pfCand_puppiWeight', 
+                  'pfCand_lostInnerHits', 'pfCand_nPixelHits', 'pfCand_hasTrackDetails',
+                  'pfCand_dxy', 'pfCand_dxy_error', 'pfCand_dz', 'pfCand_dz_error',
+                  'pfCand_track_chi2', 'pfCand_track_ndof',
+                ]
 
 input_samples: # "sample_alias": [list of strings with tau types to be selected]
   "data/SM/ShuffleMergeSpectral_100": ["tau", "${vs_type}"]

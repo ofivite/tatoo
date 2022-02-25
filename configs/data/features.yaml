@@ -1,1 +1,6 @@
-feature_names: ['r', 'theta', 'pt', 'particle_type']
+feature_names: [
+                'r', 'theta', 'rel_pt', 'particle_type', 
+                'charge', 'pvAssociationQuality', 'puppiWeight', 'lostInnerHits', 'nPixelHits', 'hasTrackDetails',
+                'vertex_dx', 'vertex_dy', 'vertex_dz', 'vertex_dx_tauFL', 'vertex_dy_tauFL', 'vertex_dz_tauFL', 
+                'dxy', 'dxy_sig', 'dz', 'dz_sig', 'track_ndof', 'chi2_ndof'
+                ]

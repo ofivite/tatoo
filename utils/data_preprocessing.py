@@ -64,6 +64,23 @@ def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val, r
     a['pfCand', 'theta'] = np.arctan2(a['pfCand', 'dphi'], a['pfCand', 'deta']) # dphi -> y, deta -> x
     a['pfCand', 'particle_type'] = a['pfCand', 'particleType'] - 1
 
+    # vertices, IP, track info
+    a['pfCand', 'vertex_dx'] = a['pfCand', 'vertex_x'] - a['pv_x']
+    a['pfCand', 'vertex_dy'] = a['pfCand', 'vertex_y'] - a['pv_y']
+    a['pfCand', 'vertex_dz'] = a['pfCand', 'vertex_z'] - a['pv_z']
+    a['pfCand', 'vertex_dx_tauFL'] = a['pfCand', 'vertex_x'] - a['pv_x'] - a['tau_flightLength_x']
+    a['pfCand', 'vertex_dy_tauFL'] = a['pfCand', 'vertex_y'] - a['pv_y'] - a['tau_flightLength_y']
+    a['pfCand', 'vertex_dz_tauFL'] = a['pfCand', 'vertex_z'] - a['pv_z'] - a['tau_flightLength_z']
+
+    has_track_details = a['pfCand', 'hasTrackDetails'] == 1
+    has_track_details_track_ndof = has_track_details * (a['pfCand', 'track_ndof'] > 0)
+    a['pfCand', 'dxy'] = ak.where(has_track_details, a['pfCand', 'dxy'], 0)
+    a['pfCand', 'dxy_sig'] = ak.where(has_track_details, np.abs(a['pfCand', 'dxy'])/a['pfCand', 'dxy_error'], 0)
+    a['pfCand', 'dz'] = ak.where(has_track_details, a['pfCand', 'dz'], 0)
+    a['pfCand', 'dz_sig'] = ak.where(has_track_details, np.abs(a['pfCand', 'dz'])/a['pfCand', 'dz_error'], 0)
+    a['pfCand', 'track_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_ndof'], 0)
+    a['pfCand', 'chi2_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_chi2']/a['pfCand', 'track_ndof'], 0)
+
     # select classes 
     a_taus = a[a['node_tau'] == 1]
     a_vs_type = a[a[f'node_{vs_type}'] == 1]
