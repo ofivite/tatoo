@@ -1,7 +1,7 @@
 from omegaconf import OmegaConf, DictConfig
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, Conv1D, Flatten, Softmax
+from tensorflow.keras.layers import Dense, Conv1D, Softmax, LayerNormalization, Dropout
 from tensorflow.keras.layers import ReLU, BatchNormalization
 from models.embedding import FeatureEmbedding
 
@@ -122,10 +122,11 @@ class WaveformDecoder(tf.keras.Model):
         self.kernel_size = kernel_size
         self.conv_blocks = [Conv1DBlock(n_conv_layers=n_conv_layers, kernel_size=kernel_size, n_conv_filters=n_conv_filters) 
                                     for _ in range(self.n_conv_blocks)]
-        self.flatten = Flatten() 
-        # self.pooling = GlobalAveragePooling1D(data_format='channels_first')
+
+        # self.dropout = Dropout(0.2)
+        # self.layer_norm = LayerNormalization(axis=[1,2,3])
         self.dense_1 = Dense(hidden_dim, activation=tf.nn.relu)
-        self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
+        # self.dense_2 = Dense(hidden_dim//2, activation=tf.nn.relu)
         self.output_dense = Dense(n_outputs, activation=None)
         self.output_softmax = Softmax()
 
@@ -133,12 +134,15 @@ class WaveformDecoder(tf.keras.Model):
         x_block_in = inputs 
         for i in range(self.n_conv_blocks):
             x_block_out = self.conv_blocks[i](x_block_in)
-            x_block_in = x_block_out + inputs
-
-        x_block_out = tf.math.reduce_mean(x_block_in, axis=-1) # global average pooling over rotation dim
-        x_block_out = self.flatten(x_block_out) # flatten emb x filter dimensions
+            x_block_in = x_block_in + x_block_out
+        
+        # x_block_in = self.dropout(x_block_in)
+        # x_block_in = self.layer_norm(x_block_in)
+        x_block_out = tf.math.reduce_mean(x_block_in, axis=-1) # pulling by mean over rotation dim
+        x_block_out = tf.math.reduce_mean(x_block_out, axis=-1) # pulling by mean over filter dim
+        
         x_dense = self.dense_1(x_block_out)
-        x_dense = self.dense_2(x_dense)
+        # x_dense = self.dense_2(x_dense)
         outputs = self.output_softmax(self.output_dense(x_dense))
         return outputs
 
