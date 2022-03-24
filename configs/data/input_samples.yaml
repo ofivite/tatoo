@@ -9,19 +9,42 @@ input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                   'pfCand_track_chi2', 'pfCand_track_ndof',
                 ]
 
-input_samples: # "sample_alias": [list of strings with tau types to be selected]
-  "data/SM/ShuffleMergeSpectral_100": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_101": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_102": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_103": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_104": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_105": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_106": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_107": ["tau", "${vs_type}"]
-  "data/SM/ShuffleMergeSpectral_108": ["tau", "${vs_type}"]
+input_files: # "sample_alias": [list of strings with tau types to be selected]
+  train:
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_100": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_101": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_102": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_103": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_104": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_105": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_106": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_107": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_108": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_109": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_200": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_201": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_202": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_203": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_204": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_205": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_206": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_207": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_208": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_209": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_210": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_211": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_212": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_213": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_214": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_215": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_216": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_217": ["tau", "${vs_type}"]
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_218": ["tau", "${vs_type}"]
+  val:
+    "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_219": ["tau", "${vs_type}"]
 
 tree_name: taus
-target_map:
+tau_type_map:
   e: 0
   mu: 1
   tau: 2

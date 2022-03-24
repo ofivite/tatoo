@@ -1,41 +1,18 @@
 import uproot
 import awkward as ak
 import tensorflow as tf
-import h5py
 import numpy as np
-import pandas as pd
 from hydra.utils import to_absolute_path
 
-def get_tau_targets(data_sample, file_name):
-    with h5py.File(to_absolute_path(f'data/{data_sample}/{file_name}_pred.h5'), "r") as f:
-        target_columns = [i.decode("utf-8") for i in f.get('targets/block0_items')]
-        targets = np.array(f.get('targets/block0_values'), dtype=np.int32)
-    return pd.DataFrame(targets, columns=target_columns)
-
-def get_tau_arrays(data_cfg):
-    taus = []
-    for sample, tau_types in data_cfg['input_samples'].items():
-        target_selection = ' | '.join([f'(tauType=={data_cfg["target_map"][tau_type]})' for tau_type in tau_types]) # select only taus of required classes
-        print(f'      - {sample}')
-        
-        # open ROOT file and retireve awkward arrays
-        with uproot.open(to_absolute_path(f'{sample}.root')) as f:
-            a = f[data_cfg['tree_name']].arrays(data_cfg['input_branches'], cut=target_selection, how='zip')
-                
-            # add target labels
-            for tau_type in tau_types:
-                a[f'node_{tau_type}'] = ak.values_astype(a['tauType'] == data_cfg['target_map'][tau_type], np.int32)
-                n_samples = np.sum(a[f'node_{tau_type}'])
-                print(f'          {tau_type}: {n_samples} samples')
-
-        # append to array list 
-        taus.append(a)
+def parse_file(file_name, tree_name, input_branches, tau_types, tau_type_map):
+    label_selection = ' | '.join([f'(tauType=={tau_type_map[tau_type]})' for tau_type in tau_types]) # select only taus of specified classes
+    print(f'      - {file_name}')
     
-    # concat all samples together and shuffle
-    taus = ak.concatenate(taus, axis=0)
-    taus = taus[np.random.permutation(len(taus))]
+    # open ROOT file and retireve awkward arrays
+    with uproot.open(to_absolute_path(f'{file_name}.root')) as f:
+        a = f[tree_name].arrays(input_branches, cut=label_selection, how='zip')
 
-    return taus
+    return a
 
 def awkward_to_ragged(a, feature_names):
     pf_lengths = ak.count(a['pfCand', feature_names[0]], axis=1)
@@ -47,7 +24,7 @@ def awkward_to_ragged(a, feature_names):
     ragged_pf = tf.stack(ragged_pf_features, axis=-1)
     return ragged_pf
 
-def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val, return_deeptau_score=False):
+def preprocess_array(a, tau_type_map):
     # remove taus with abnormal phi
     a = a[np.abs(a['tau_phi'])<2.*np.pi] 
 
@@ -64,7 +41,7 @@ def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val, r
     a['pfCand', 'theta'] = np.arctan2(a['pfCand', 'dphi'], a['pfCand', 'deta']) # dphi -> y, deta -> x
     a['pfCand', 'particle_type'] = a['pfCand', 'particleType'] - 1
 
-    # vertices, IP, track info
+    # vertices
     a['pfCand', 'vertex_dx'] = a['pfCand', 'vertex_x'] - a['pv_x']
     a['pfCand', 'vertex_dy'] = a['pfCand', 'vertex_y'] - a['pv_y']
     a['pfCand', 'vertex_dz'] = a['pfCand', 'vertex_z'] - a['pv_z']
@@ -72,6 +49,7 @@ def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val, r
     a['pfCand', 'vertex_dy_tauFL'] = a['pfCand', 'vertex_y'] - a['pv_y'] - a['tau_flightLength_y']
     a['pfCand', 'vertex_dz_tauFL'] = a['pfCand', 'vertex_z'] - a['pv_z'] - a['tau_flightLength_z']
 
+    # IP, track info
     has_track_details = a['pfCand', 'hasTrackDetails'] == 1
     has_track_details_track_ndof = has_track_details * (a['pfCand', 'track_ndof'] > 0)
     a['pfCand', 'dxy'] = ak.where(has_track_details, a['pfCand', 'dxy'], 0)
@@ -81,34 +59,11 @@ def preprocess_taus(a, vs_type, feature_names, n_samples_train, n_samples_val, r
     a['pfCand', 'track_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_ndof'], 0)
     a['pfCand', 'chi2_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_chi2']/a['pfCand', 'track_ndof'], 0)
 
-    # select classes 
-    a_taus = a[a['node_tau'] == 1]
-    a_vs_type = a[a[f'node_{vs_type}'] == 1]
+    # add labels
+    print('        Selected:')
+    for tau_type, tau_type_value in tau_type_map.items():
+        a[f'node_{tau_type}'] = ak.values_astype(a['tauType'] == tau_type_value, np.int32)
+        n_samples = np.sum(a[f'node_{tau_type}'])
+        print(f'          {tau_type}: {n_samples} samples')
 
-    # concat classes & shuffle
-    a_train = ak.concatenate([a_taus[:n_samples_train], a_vs_type[:n_samples_train]], axis=0)
-    a_val = ak.concatenate([a_taus[n_samples_train:n_samples_train+n_samples_val], \
-                            a_vs_type[n_samples_train:n_samples_train+n_samples_val]], axis=0)
-    a_train = a_train[np.random.permutation(len(a_train))]
-    a_val = a_val[np.random.permutation(len(a_val))]
-
-    # split targets
-    targets_train = ak.to_pandas(a_train[['node_tau', f'node_{vs_type}']])
-    targets_val = ak.to_pandas(a_val[['node_tau', f'node_{vs_type}']])
-    print(targets_train.value_counts())
-    print(targets_val.value_counts())
-    targets_train = targets_train.values
-    targets_val = targets_val.values
-
-    # convert to ragged arrays with only required features
-    X_train = awkward_to_ragged(a_train, feature_names)
-    X_val = awkward_to_ragged(a_val, feature_names)
-
-    if return_deeptau_score:
-        deeptau_score_train = ak.to_pandas(a_train[f'tau_byDeepTau2017v2p1VS{vs_type}raw'])
-        deeptau_score_val = ak.to_pandas(a_val[f'tau_byDeepTau2017v2p1VS{vs_type}raw'])
-        deeptau_score_train = np.squeeze(deeptau_score_train.values)
-        deeptau_score_val = np.squeeze(deeptau_score_val.values)
-        return (X_train, targets_train, deeptau_score_train), (X_val, targets_val, deeptau_score_val)
-    else:
-        return (X_train, targets_train), (X_val, targets_val)
+    return a 

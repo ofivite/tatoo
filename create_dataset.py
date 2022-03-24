@@ -4,60 +4,75 @@ import shutil
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
-from utils.data_preprocessing import get_tau_arrays, preprocess_taus
+from utils.data_preprocessing import parse_file, preprocess_array, awkward_to_ragged
+
 import tensorflow as tf
+import awkward as ak
+import numpy as np
+
+physical_devices = tf.config.list_physical_devices('GPU') 
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
+tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
+                                                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=8*1024)])
 
 @hydra.main(config_path='configs', config_name='create_dataset')
 def main(cfg: DictConfig) -> None:
+    time_start = time.time()
 
-    print('\n-> Retrieving input awkward arrays')
-    time_0 = time.time()
-    a = get_tau_arrays(cfg.data_cfg)
-    time_1 = time.time()
-    print(f'   took: {(time_1-time_0):.1f} s.')
+    # read from cfg
+    train_files = OmegaConf.to_object(cfg['data_cfg']['input_files']['train'])
+    val_files = OmegaConf.to_object(cfg['data_cfg']['input_files']['val'])
+    tau_type_map = cfg['data_cfg']['tau_type_map']
+    tree_name = cfg['data_cfg']['tree_name']
+    input_branches = cfg['data_cfg']['input_branches']
+    vs_type = cfg['vs_type']
+    
+    for dataset_type, files in zip(['train', 'val'], [train_files, val_files]):
+        print(f'\n-> Processing input files ({dataset_type})')
+        for file_name, tau_types in files.items():
+            time_0 = time.time()
 
-    print('\n-> Preprocessing')
-    (X_train, y_train), (X_val, y_val) = preprocess_taus(a, cfg.vs_type, cfg.feature_names, cfg.n_samples_train, cfg.n_samples_val)
-    time_2 = time.time()
-    print(f'   took: {(time_2-time_1):.1f} s.') 
+            # open ROOT file, read awkward array & preprocess it
+            a = parse_file(file_name, tree_name, input_branches, tau_types, tau_type_map)
+            time_1 = time.time()
+            print(f'        Parsing: took {(time_1-time_0):.1f} s.')
+            a = preprocess_array(a, tau_type_map)
+            time_2 = time.time()
+            print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 
-    print('\n-> Preparing TF datasets')
-    # create train data set
-    train_data = tf.data.Dataset.from_tensor_slices((X_train, y_train))
-    if cfg.cache:
-        train_data = train_data.cache()
-    train_data = train_data.shuffle(cfg.shuffle_buffer_size).batch(cfg.train_batch_size)
-    train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
+            # convert awkward to TF ragged arrays
+            X = awkward_to_ragged(a, cfg['feature_names']) # keep only feats from feature_names
+            y = ak.to_pandas(a[['node_tau', f'node_{vs_type}']]).values
+            if cfg['return_deeptau_score']:
+                deeptau_score = ak.to_pandas(a[f'tau_byDeepTau2017v2p1VS{vs_type}raw'])
+                deeptau_score = np.squeeze(deeptau_score.values)
+                data = (X, y, deeptau_score)
+            else:
+                data = (X, y)
+            
+            # create TF dataset 
+            dataset = tf.data.Dataset.from_tensor_slices(data)
+            if cfg['cache']:
+                dataset = dataset.cache()
+            dataset = dataset.shuffle(cfg['shuffle_buffer_size']).batch(cfg['batch_size'][dataset_type])
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+            time_3 = time.time()
+            print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
 
-    # create validation data set
-    val_data = tf.data.Dataset.from_tensor_slices((X_val, y_val))
-    if cfg.cache:
-        val_data = val_data.cache()
-    val_data = val_data.batch(cfg.val_batch_size)
-    val_data = val_data.prefetch(tf.data.experimental.AUTOTUNE)
-    time_3 = time.time()
-    print(f'took: {(time_3-time_2):.1f} s.') 
+            # remove existing datasets
+            path_to_dataset = to_absolute_path(f'datasets/{cfg.dataset_name}/{dataset_type}/{os.path.basename(file_name)}/{vs_type}')
+            if os.path.exists(path_to_dataset):
+                shutil.rmtree(path_to_dataset)
+            else:
+                os.makedirs(path_to_dataset, exist_ok=True)
 
-    # remove existing datasets
-    path_to_train_dataset = to_absolute_path(f'datasets/{cfg.dataset_name}/train/{cfg.vs_type}')
-    path_to_val_dataset = to_absolute_path(f'datasets/{cfg.dataset_name}/val/{cfg.vs_type}')
-    if os.path.exists(path_to_train_dataset):
-        shutil.rmtree(path_to_train_dataset)
-    else:
-        os.makedirs(path_to_train_dataset, exist_ok=True)
-    if os.path.exists(path_to_val_dataset):
-        shutil.rmtree(path_to_val_dataset)
-    else:
-        os.makedirs(path_to_val_dataset, exist_ok=True)
+            # save
+            tf.data.experimental.save(dataset, path_to_dataset)
+            OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
+            time_4 = time.time()
+            print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
 
-    # save
-    print('\n-> Saving TF datasets')
-    tf.data.experimental.save(train_data, path_to_train_dataset)
-    tf.data.experimental.save(val_data, path_to_val_dataset)
-    OmegaConf.save(config=cfg, f=to_absolute_path(f'datasets/{cfg.dataset_name}/train/{cfg.vs_type}/cfg.yml'))
-    time_4 = time.time()
-    print(f'took: {time_4 - time_3}') 
-    print(f'total time: {(time_4-time_0):.1f} s.\n') 
+    print(f'Total time: {(time_4-time_start):.1f} s.\n') 
 
 if __name__ == '__main__':
     main()
