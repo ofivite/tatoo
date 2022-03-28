@@ -1,3 +1,4 @@
+from glob import glob
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig
@@ -36,8 +37,20 @@ def main(cfg: DictConfig) -> None:
         run_id = active_run.info.run_id
         
         # load datasets 
-        train_data = tf.data.experimental.load(to_absolute_path(f'datasets/{cfg.dataset_name}/train/{cfg.vs_type}'))
-        val_data = tf.data.experimental.load(to_absolute_path(f'datasets/{cfg.dataset_name}/val/{cfg.vs_type}'))
+        train_datasets, val_datasets = [], []
+        for p in glob(to_absolute_path(f'datasets/{cfg.dataset_name}/train/ShuffleMergeSpectral_*/{cfg.vs_type}')):
+            dataset = tf.data.experimental.load(p)#.repeat()
+            train_datasets.append(dataset) 
+        for p in glob(to_absolute_path(f'datasets/{cfg.dataset_name}/val/ShuffleMergeSpectral_*/{cfg.vs_type}')):
+            dataset = tf.data.experimental.load(p)
+            val_datasets.append(dataset) 
+        train_data = tf.data.Dataset.sample_from_datasets(datasets=train_datasets, stop_on_empty_dataset=False)
+        val_data = tf.data.Dataset.sample_from_datasets(datasets=val_datasets, stop_on_empty_dataset=False)
+        # train_data = tf.data.Dataset.choose_from_datasets(train_datasets, choice_dataset=tf.data.Dataset.range(len(train_datasets)), stop_on_empty_dataset=False)
+        # val_data = tf.data.Dataset.choose_from_datasets(val_datasets, choice_dataset=tf.data.Dataset.range(len(val_datasets)), stop_on_empty_dataset=False)
+
+        # train_data = tf.data.experimental.load(to_absolute_path(f'datasets/{cfg.dataset_name}/train/ShuffleMergeSpectral_{cfg.dataset_id}/{cfg.vs_type}'))
+        # val_data = tf.data.experimental.load(to_absolute_path(f'datasets/{cfg.dataset_name}/val/ShuffleMergeSpectral_219/{cfg.vs_type}'))
 
         # define model
         feature_name_to_idx = {name: cfg.feature_names.index(name) for name in cfg.feature_names}
@@ -52,11 +65,11 @@ def main(cfg: DictConfig) -> None:
 
         # compile and fit
         opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
-        callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.001, patience=3, mode='auto', restore_best_weights=True)
+        callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, mode='auto', restore_best_weights=True)
         model.compile(optimizer=opt,
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
                     metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
-        model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, callbacks=[callback], verbose=1)
+        model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, callbacks=[callback], verbose=1)  #  steps_per_epoch=1000, 
 
         # save model
         print("\n-> Saving model")

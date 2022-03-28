@@ -11,6 +11,7 @@ experiment_name: ???
 # datasets
 vs_type: ???
 dataset_name: ???
+dataset_id: ???
 
 # training
 learning_rate: 0.0001

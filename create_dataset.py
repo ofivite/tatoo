@@ -32,10 +32,12 @@ def main(cfg: DictConfig) -> None:
         for file_name, tau_types in files.items():
             time_0 = time.time()
 
-            # open ROOT file, read awkward array & preprocess it
+            # open ROOT file, read awkward array
             a = parse_file(file_name, tree_name, input_branches, tau_types, tau_type_map)
             time_1 = time.time()
             print(f'        Parsing: took {(time_1-time_0):.1f} s.')
+
+            # preprocess awkward array
             a = preprocess_array(a, tau_type_map)
             time_2 = time.time()
             print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
@@ -68,7 +70,7 @@ def main(cfg: DictConfig) -> None:
 
             # save
             tf.data.experimental.save(dataset, path_to_dataset)
-            OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
+            OmegaConf.save(config=cfg, f=to_absolute_path(f'datasets/{cfg.dataset_name}/cfg.yaml'))
             time_4 = time.time()
             print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
 
