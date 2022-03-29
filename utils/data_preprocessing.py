@@ -4,7 +4,7 @@ import tensorflow as tf
 import numpy as np
 from hydra.utils import to_absolute_path
 
-def parse_file(file_name, tree_name, input_branches, tau_types, tau_type_map):
+def load_from_file(file_name, tree_name, input_branches, tau_types, tau_type_map):
     label_selection = ' | '.join([f'(tauType=={tau_type_map[tau_type]})' for tau_type in tau_types]) # select only taus of specified classes
     print(f'      - {file_name}')
     

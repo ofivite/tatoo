@@ -4,7 +4,7 @@ import shutil
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
-from utils.data_preprocessing import parse_file, preprocess_array, awkward_to_ragged
+from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_ragged
 
 import tensorflow as tf
 import awkward as ak
@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
             time_0 = time.time()
 
             # open ROOT file, read awkward array
-            a = parse_file(file_name, tree_name, input_branches, tau_types, tau_type_map)
+            a = load_from_file(file_name, tree_name, input_branches, tau_types, tau_type_map)
             time_1 = time.time()
             print(f'        Parsing: took {(time_1-time_0):.1f} s.')
 
