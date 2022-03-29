@@ -35,7 +35,7 @@ def main(cfg: DictConfig) -> None:
             # open ROOT file, read awkward array
             a = load_from_file(file_name, tree_name, input_branches, tau_types, tau_type_map)
             time_1 = time.time()
-            print(f'        Parsing: took {(time_1-time_0):.1f} s.')
+            print(f'        Loading: took {(time_1-time_0):.1f} s.')
 
             # preprocess awkward array
             a = preprocess_array(a, tau_type_map)
