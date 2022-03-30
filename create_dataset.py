@@ -29,6 +29,8 @@ def main(cfg: DictConfig) -> None:
     
     for dataset_type, files in zip(['train', 'val'], [train_files, val_files]):
         print(f'\n-> Processing input files ({dataset_type})')
+        n_samples = {'tau': 0, vs_type: 0}
+
         for file_name, tau_types in files.items():
             time_0 = time.time()
 
@@ -45,6 +47,8 @@ def main(cfg: DictConfig) -> None:
             # convert awkward to TF ragged arrays
             X = awkward_to_ragged(a, cfg['feature_names']) # keep only feats from feature_names
             y = ak.to_pandas(a[['node_tau', f'node_{vs_type}']]).values
+            for k in n_samples.keys():
+                n_samples[k] += np.sum(a[f'node_{k}'])
             if cfg['return_deeptau_score']:
                 deeptau_score = ak.to_pandas(a[f'tau_byDeepTau2017v2p1VS{vs_type}raw'])
                 deeptau_score = np.squeeze(deeptau_score.values)
@@ -70,9 +74,13 @@ def main(cfg: DictConfig) -> None:
 
             # save
             tf.data.experimental.save(dataset, path_to_dataset)
-            OmegaConf.save(config=cfg, f=to_absolute_path(f'datasets/{cfg.dataset_name}/cfg.yaml'))
+            OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
             time_4 = time.time()
             print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
+
+        print(f'\n-> Dataset ({dataset_type}) contains:')
+        for k, v in n_samples.items():
+            print(f'    {k}: {v} samples')
 
     print(f'Total time: {(time_4-time_start):.1f} s.\n') 
 

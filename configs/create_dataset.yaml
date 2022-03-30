@@ -9,6 +9,6 @@ dataset_name: ???
 cache: False
 shuffle_buffer_size: 1000
 batch_size:
-  train: 250
-  val: 1000
+  train: 125
+  val: 125
 return_deeptau_score: False
