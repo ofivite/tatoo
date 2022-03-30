@@ -59,6 +59,9 @@ def preprocess_array(a, tau_type_map):
     a['pfCand', 'track_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_ndof'], 0)
     a['pfCand', 'chi2_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_chi2']/a['pfCand', 'track_ndof'], 0)
 
+    # preprocess NaNs
+    a = ak.nan_to_num(a, nan=0., posinf=0., neginf=0.)
+
     # add labels
     print('        Selected:')
     for tau_type, tau_type_value in tau_type_map.items():
