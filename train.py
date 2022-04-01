@@ -1,3 +1,4 @@
+import shutil
 from glob import glob
 import hydra
 from hydra.utils import to_absolute_path
@@ -65,11 +66,20 @@ def main(cfg: DictConfig) -> None:
 
         # compile and fit
         opt = tf.keras.optimizers.Adam(learning_rate=cfg.learning_rate)
-        callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.001, patience=5, mode='auto', restore_best_weights=True)
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.001, patience=3, mode='auto', restore_best_weights=True)
+        checkpoint_path = 'tmp_checkpoints'
+        model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path + "/" + "epoch_{epoch:02d}---val_loss_{val_loss:.3f}",
+            save_weights_only=False,
+            monitor='val_loss',
+            mode='min',
+            save_freq='epoch',
+            save_best_only=False)
+        callbacks = [early_stopping, model_checkpoint]
         model.compile(optimizer=opt,
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
                     metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
-        model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, callbacks=[callback], verbose=1)  #  steps_per_epoch=1000, 
+        model.fit(train_data, validation_data=val_data, epochs=cfg.n_epochs, callbacks=callbacks, verbose=1)  #  steps_per_epoch=1000, 
 
         # save model
         print("\n-> Saving model")
@@ -113,6 +123,8 @@ def main(cfg: DictConfig) -> None:
         # log misc. info
         mlflow.log_param('run_id', run_id)
         mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
+        mlflow.log_artifacts(checkpoint_path, "checkpoints")
+        shutil.rmtree(checkpoint_path)
 
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
 
