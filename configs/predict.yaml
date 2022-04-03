@@ -1,0 +1,13 @@
+dataset_name: ???
+dataset_type: ???
+vs_type: ???
+tau_type_to_node:
+  tau: 0
+  ${vs_type}: 1
+
+path_to_mlflow: mlruns
+experiment_id: ???
+run_id: ???
+
+output_filename: predictions
+
