@@ -20,14 +20,13 @@ def main(cfg: DictConfig) -> None:
     time_start = time.time()
 
     # read from cfg
-    train_files = OmegaConf.to_object(cfg['data_cfg']['input_files']['train'])
-    val_files = OmegaConf.to_object(cfg['data_cfg']['input_files']['val'])
     tau_type_map = cfg['data_cfg']['tau_type_map']
     tree_name = cfg['data_cfg']['tree_name']
     input_branches = cfg['data_cfg']['input_branches']
     vs_type = cfg['vs_type']
     
-    for dataset_type, files in zip(['train', 'val'], [train_files, val_files]):
+    for dataset_type in cfg['data_cfg']['input_files'].keys():
+        files = OmegaConf.to_object(cfg['data_cfg']['input_files'][dataset_type])
         print(f'\n-> Processing input files ({dataset_type})')
         n_samples = {'tau': 0, vs_type: 0}
 
