@@ -1,0 +1,23 @@
+dataset_name: ???
+vs_type: ???
+input_filename: predictions
+n_samples_to_take: 80000 # 2*40k
+
+path_to_mlflow: mlruns
+experiment_id: ???
+run_id: ???
+model_name: ??? # to display in the legend
+
+xlim: 
+  jet: [0.3, 1.] 
+  e: [0.5, 1.]
+  mu: [0.95, 1.]
+ylim: 
+  jet: [0.00015, 1.01]
+  e: [0.00001, 1.01]
+  mu: [0.00015, 1.01]
+auc_precision: 
+  jet: 3
+  e: 4
+  mu: 4
+figure_filename: roc_${vs_type}
