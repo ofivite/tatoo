@@ -40,8 +40,14 @@ class Encoder(tf.keras.layers.Layer):
 
         if isinstance(embedding_kwargs, DictConfig):
             embedding_kwargs = OmegaConf.to_object(embedding_kwargs)
+        # extract index of cat. features
         cat_emb_feature = embedding_kwargs.pop('cat_emb_feature')
         embedding_kwargs['cat_emb_feature_idx'] = feature_name_to_idx[cat_emb_feature]
+        
+        # drop specified features and extract their indices 
+        features_to_drop = embedding_kwargs.pop('features_to_drop')
+        embedding_kwargs['feature_idx_to_select'] = [i for f, i in feature_name_to_idx.items() if f not in features_to_drop and f != cat_emb_feature]
+
         self.feature_embedding = FeatureEmbedding(**embedding_kwargs)
 
     def call(self, x, mask, training):

@@ -1,4 +1,5 @@
 cat_emb_feature: 'particle_type'
+features_to_drop: ['r', 'theta']
 cat_emb_dim_in: 7
 cat_emb_dim_out: 2
 hidden_dim: 512
