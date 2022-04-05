@@ -19,7 +19,11 @@ tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
 def main(cfg: DictConfig) -> None:
 
     print('\n-> Loading model\n')
-    model = load_model(to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/model/'))
+    if cfg["checkpoint"] is not None:
+        path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/checkpoints/{cfg["checkpoint"]}')
+    else:
+        path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/model/')
+    model = load_model(path_to_model)
 
     for p in glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/ShuffleMergeSpectral_*/{cfg["vs_type"]}')):
         file_name = p.split('/')[-2]

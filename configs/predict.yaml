@@ -8,6 +8,7 @@ tau_type_to_node:
 path_to_mlflow: mlruns
 experiment_id: ???
 run_id: ???
+checkpoint: ??? # null to load from "model" folder
 
 output_filename: predictions
 
