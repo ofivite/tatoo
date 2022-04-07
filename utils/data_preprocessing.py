@@ -24,7 +24,7 @@ def awkward_to_ragged(a, feature_names):
     ragged_pf = tf.stack(ragged_pf_features, axis=-1)
     return ragged_pf
 
-def preprocess_array(a, tau_type_map):
+def preprocess_array(a):
     # remove taus with abnormal phi
     a = a[np.abs(a['tau_phi'])<2.*np.pi] 
 
@@ -62,11 +62,11 @@ def preprocess_array(a, tau_type_map):
     # preprocess NaNs
     a = ak.nan_to_num(a, nan=0., posinf=0., neginf=0.)
 
-    # add labels
+    return a 
+
+def preprocess_labels(a, tau_type_map):
     print('        Selected:')
     for tau_type, tau_type_value in tau_type_map.items():
         a[f'node_{tau_type}'] = ak.values_astype(a['tauType'] == tau_type_value, np.int32)
         n_samples = np.sum(a[f'node_{tau_type}'])
         print(f'          {tau_type}: {n_samples} samples')
-
-    return a 

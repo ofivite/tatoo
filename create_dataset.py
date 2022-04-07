@@ -4,7 +4,7 @@ import shutil
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
-from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_ragged
+from utils.data_preprocessing import load_from_file, preprocess_array, preprocess_labels, awkward_to_ragged
 
 import tensorflow as tf
 import awkward as ak
@@ -38,8 +38,9 @@ def main(cfg: DictConfig) -> None:
             time_1 = time.time()
             print(f'        Loading: took {(time_1-time_0):.1f} s.')
 
-            # preprocess awkward array
-            a = preprocess_array(a, tau_type_map)
+            # preprocess awkward array & add labels
+            a = preprocess_array(a)
+            a = preprocess_labels(a, tau_type_map)
             time_2 = time.time()
             print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 
