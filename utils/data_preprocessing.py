@@ -4,13 +4,12 @@ import tensorflow as tf
 import numpy as np
 from hydra.utils import to_absolute_path
 
-def load_from_file(file_name, tree_name, input_branches, tau_types, tau_type_map):
-    label_selection = ' | '.join([f'(tauType=={tau_type_map[tau_type]})' for tau_type in tau_types]) # select only taus of specified classes
+def load_from_file(file_name, tree_name, input_branches):
     print(f'      - {file_name}')
     
     # open ROOT file and retireve awkward arrays
     with uproot.open(to_absolute_path(f'{file_name}.root')) as f:
-        a = f[tree_name].arrays(input_branches, cut=label_selection, how='zip')
+        a = f[tree_name].arrays(input_branches, how='zip')
 
     return a
 
@@ -64,9 +63,18 @@ def preprocess_array(a):
 
     return a 
 
-def preprocess_labels(a, tau_type_map):
+def preprocess_labels(a, types_to_select, tau_type_map):
+    tau_types_selection = np.full(len(a['tauType']), False) 
+    tau_type_column = 'tauType_recomputed' if 'tauType_recomputed' in a.fields else 'tauType'
+
+    for tau_type in types_to_select:
+        tau_types_selection = np.logical_or(tau_types_selection, a[tau_type_column]==tau_type_map[tau_type])
+    a = a[tau_types_selection]
+
     print('        Selected:')
     for tau_type, tau_type_value in tau_type_map.items():
-        a[f'node_{tau_type}'] = ak.values_astype(a['tauType'] == tau_type_value, np.int32)
+        a[f'node_{tau_type}'] = ak.values_astype(a[tau_type_column] == tau_type_value, np.int32)
         n_samples = np.sum(a[f'node_{tau_type}'])
         print(f'          {tau_type}: {n_samples} samples')
+    
+    return a

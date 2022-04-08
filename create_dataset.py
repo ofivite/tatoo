@@ -34,13 +34,13 @@ def main(cfg: DictConfig) -> None:
             time_0 = time.time()
 
             # open ROOT file, read awkward array
-            a = load_from_file(file_name, tree_name, input_branches, tau_types, tau_type_map)
+            a = load_from_file(file_name, tree_name, input_branches)
             time_1 = time.time()
             print(f'        Loading: took {(time_1-time_0):.1f} s.')
 
             # preprocess awkward array & add labels
             a = preprocess_array(a)
-            a = preprocess_labels(a, tau_type_map)
+            a = preprocess_labels(a, tau_types, tau_type_map)
             time_2 = time.time()
             print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 
