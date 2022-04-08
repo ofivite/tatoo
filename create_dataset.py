@@ -60,7 +60,9 @@ def main(cfg: DictConfig) -> None:
             dataset = tf.data.Dataset.from_tensor_slices(data)
             if cfg['cache']:
                 dataset = dataset.cache()
-            dataset = dataset.shuffle(cfg['shuffle_buffer_size']).batch(cfg['batch_size'][dataset_type])
+            if cfg['shuffle_buffer_size'] is not None:
+                dataset = dataset.shuffle(cfg['shuffle_buffer_size'])
+            dataset = dataset.batch(cfg['batch_size'][dataset_type])
             dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
             time_3 = time.time()
             print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
