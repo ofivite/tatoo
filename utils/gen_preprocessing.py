@@ -7,44 +7,44 @@ def get_genLepton_match(genLepton_match_map, genLepton_kind_map, genLepton_index
     
     if genLepton_index >= 0:
         if not is_dR_matched:
-            return None
+            return genLepton_match_map['None'] 
         else:
             if (genLepton_kind == genLepton_kind_map['PromptElectron']):
                 if (genLepton_vis_pt < 8.0):
-                    return None
+                    return genLepton_match_map['None'] 
                 else:
                     return genLepton_match_map['Electron']
                 
             elif (genLepton_kind == genLepton_kind_map['PromptMuon']):
                 if (genLepton_vis_pt < 8.0):
-                    return None
+                    return genLepton_match_map['None'] 
                 else:
                     return genLepton_match_map['Muon']
             
             elif (genLepton_kind == genLepton_kind_map['TauDecayedToElectron']):
                 if (genLepton_vis_pt < 8.0):
-                    return None
+                    return genLepton_match_map['None'] 
                 else:
                     return genLepton_match_map['TauElectron']
             
             elif (genLepton_kind == genLepton_kind_map['TauDecayedToMuon']):
                 if (genLepton_vis_pt < 8.0):
-                    return None
+                    return genLepton_match_map['None'] 
                 else:
                     return genLepton_match_map['TauMuon']
             
             elif (genLepton_kind == genLepton_kind_map['TauDecayedToHadrons']):
                 if (genLepton_vis_pt < 15.0):
-                    return None
+                    return genLepton_match_map['None'] 
                 else:
                     return genLepton_match_map['Tau']
             else: 
-                raise Exception
+                return genLepton_match_map['Exception']
                 
     elif genJet_index >= 0:
         return genLepton_match_map['NoMatch'] 
     else:
-        return None
+        return genLepton_match_map['None'] 
 
 @njit
 def recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
@@ -55,7 +55,7 @@ def recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map,
     for i in range(len(genLepton_index)): # loop over taus
         gen_match = get_genLepton_match(genLepton_match_map, genLepton_kind_map, 
                                 genLepton_index[i], genJet_index[i], genLepton_kind[i], genLepton_vis_pt[i], is_dR_matched[i])
-        
+
         if sample_type[i]==sample_type_map['MC'] and (gen_match==genLepton_match_map['Electron'] or gen_match==genLepton_match_map['TauElectron']):
             tau_types.append(tau_type_map['e'])
             
@@ -75,7 +75,7 @@ def recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map,
             if(gen_match==genLepton_match_map['TauMuon']): tau_types.append(tau_type_map['emb_mu'])
             if(gen_match==genLepton_match_map['TauElectron']): tau_types.append(tau_type_map['emb_e'])
         else:
-            raise Exception
+            tau_types.append(tau_type_map['no_type'])
 
     return tau_types
 

@@ -7,6 +7,8 @@ genLepton_match_map:
   TauMuon: 4
   Tau: 5
   NoMatch: 6
+  None: 0
+  Exception: -1
 
 genLepton_kind_map:
   PromptElectron: 1
@@ -31,3 +33,4 @@ tau_type_map:
   emb_tau: 6
   emb_jet: 7
   data: 8
+  no_type: -1

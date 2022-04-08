@@ -4,8 +4,8 @@ import shutil
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
-from utils.data_preprocessing import load_from_file, preprocess_array, recompute_tau_type, preprocess_labels, awkward_to_ragged
-from utils.gen_preprocessing import compute_genmatch_dR, dict_to_numba
+from utils.data_preprocessing import load_from_file, preprocess_array, preprocess_labels, awkward_to_ragged
+from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
 
 import tensorflow as tf
 import awkward as ak
@@ -56,6 +56,8 @@ def main(cfg: DictConfig) -> None:
                 a[tau_type_column] = recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
                                                             a['sampleType'], is_dR_matched,
                                                             a['genLepton_index'], a['genJet_index'], a['genLepton_kind'], a['genLepton_vis_pt']) # first execution might be slower due to compilation
+                if sum_:=np.sum(a[tau_type_column]!=a["tauType"]):
+                    print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(a["tauType"])*100}\%\n')
             else:
                 tau_type_column = 'tauType'
 
@@ -103,7 +105,7 @@ def main(cfg: DictConfig) -> None:
         for k, v in n_samples.items():
             print(f'    {k}: {v} samples')
 
-    print(f'Total time: {(time_4-time_start):.1f} s.\n') 
+    print(f'\nTotal time: {(time_4-time_start):.1f} s.\n') 
 
 if __name__ == '__main__':
     main()
