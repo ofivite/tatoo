@@ -4,11 +4,13 @@ import shutil
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
-from utils.data_preprocessing import load_from_file, preprocess_array, preprocess_labels, awkward_to_ragged
+from utils.data_preprocessing import load_from_file, preprocess_array, recompute_tau_type, preprocess_labels, awkward_to_ragged
+from utils.gen_preprocessing import compute_genmatch_dR, dict_to_numba
 
 import tensorflow as tf
 import awkward as ak
 import numpy as np
+from numba.core import types
 
 physical_devices = tf.config.list_physical_devices('GPU') 
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
@@ -20,7 +22,7 @@ def main(cfg: DictConfig) -> None:
     time_start = time.time()
 
     # read from cfg
-    tau_type_map = cfg['data_cfg']['tau_type_map']
+    tau_type_map = cfg['gen_cfg']['tau_type_map']
     tree_name = cfg['data_cfg']['tree_name']
     input_branches = cfg['data_cfg']['input_branches']
     vs_type = cfg['vs_type']
@@ -38,9 +40,26 @@ def main(cfg: DictConfig) -> None:
             time_1 = time.time()
             print(f'        Loading: took {(time_1-time_0):.1f} s.')
 
-            # preprocess awkward array & add labels
+            # preprocess awkward array
             a = preprocess_array(a)
-            a = preprocess_labels(a, tau_types, tau_type_map)
+
+            # preprocess labels
+            if cfg['recompute_tau_type']:
+                genLepton_match_map = dict_to_numba(cfg['gen_cfg']['genLepton_match_map'], key_type=types.unicode_type, value_type=types.int32)
+                genLepton_kind_map = dict_to_numba(cfg['gen_cfg']['genLepton_kind_map'], key_type=types.unicode_type, value_type=types.int32)
+                sample_type_map = dict_to_numba(cfg['gen_cfg']['sample_type_map'], key_type=types.unicode_type, value_type=types.int32)
+                tau_type_map = dict_to_numba(tau_type_map, key_type=types.unicode_type, value_type=types.int32)
+                genmatch_dR = compute_genmatch_dR(a)
+                is_dR_matched = genmatch_dR < cfg['gen_cfg']['genmatch_dR']
+
+                tau_type_column = 'tauType_recomputed'
+                a[tau_type_column] = recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
+                                                            a['sampleType'], is_dR_matched,
+                                                            a['genLepton_index'], a['genJet_index'], a['genLepton_kind'], a['genLepton_vis_pt']) # first execution might be slower due to compilation
+            else:
+                tau_type_column = 'tauType'
+
+            a = preprocess_labels(a, tau_type_column, tau_types, tau_type_map)
             time_2 = time.time()
             print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 

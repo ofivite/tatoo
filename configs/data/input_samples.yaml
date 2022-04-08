@@ -1,3 +1,4 @@
+tree_name: taus
 input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                   'tau_pt', 'tau_eta', 'tau_phi', 'genLepton_kind', 'tauType',
                   'tau_byDeepTau2017v2p1VSjetraw', 'tau_byDeepTau2017v2p1VSmuraw', 'tau_byDeepTau2017v2p1VSeraw', 
@@ -7,6 +8,7 @@ input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                   'pfCand_lostInnerHits', 'pfCand_nPixelHits', 'pfCand_hasTrackDetails',
                   'pfCand_dxy', 'pfCand_dxy_error', 'pfCand_dz', 'pfCand_dz_error',
                   'pfCand_track_chi2', 'pfCand_track_ndof',
+                  'sampleType', 'genLepton_index', 'genJet_index', 'genLepton_kind', 'genLepton_vis_pt', 'genLepton_vis_eta', 'genLepton_vis_phi', 
                 ]
 
 input_files: # "sample_alias": [list of strings with tau types to be selected]
@@ -70,10 +72,3 @@ input_files: # "sample_alias": [list of strings with tau types to be selected]
     "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_492": ["tau", "${vs_type}"]
     "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_493": ["tau", "${vs_type}"]
     "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_494": ["tau", "${vs_type}"]
-
-tree_name: taus
-tau_type_map:
-  e: 0
-  mu: 1
-  tau: 2
-  jet: 3

@@ -1,6 +1,7 @@
 defaults:
   - data@_global_: features
   - data@data_cfg: input_samples
+  - data@gen_cfg: gen_config
   - _self_
 
 vs_type: ???
@@ -13,3 +14,4 @@ batch_size:
   val: 125
   test: 1250
 return_deeptau_score: False
+recompute_tau_type: False

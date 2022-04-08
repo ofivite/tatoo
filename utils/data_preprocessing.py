@@ -63,9 +63,8 @@ def preprocess_array(a):
 
     return a 
 
-def preprocess_labels(a, types_to_select, tau_type_map):
-    tau_types_selection = np.full(len(a['tauType']), False) 
-    tau_type_column = 'tauType_recomputed' if 'tauType_recomputed' in a.fields else 'tauType'
+def preprocess_labels(a, tau_type_column, types_to_select, tau_type_map):
+    tau_types_selection = np.full(len(a[tau_type_column]), False) 
 
     for tau_type in types_to_select:
         tau_types_selection = np.logical_or(tau_types_selection, a[tau_type_column]==tau_type_map[tau_type])
