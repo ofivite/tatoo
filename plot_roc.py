@@ -8,8 +8,8 @@ import mlflow
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy import interpolate
-from sklearn.metrics import roc_auc_score, roc_curve
+
+from utils.plotting import derive_roc_curve
 
 @hydra.main(config_path='configs', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
@@ -21,34 +21,8 @@ def main(cfg: DictConfig) -> None:
     lw = 3
 
     tpr_grid = np.linspace(start=0., stop=1., num=100000, endpoint=True)
-    fpr_arrays, fpr_deeptau_arrays = [], []
-    auc, auc_deeptau = [], []
-
-    for p in glob(f'{path_to_artifacts}/predictions/{cfg["dataset_name"]}/*/{vs_type}/*.h5'):
-        predictions = pd.read_hdf(p, key='predictions', start=0, stop=cfg["n_samples_to_take"]) 
-        labels = pd.read_hdf(p, key='labels', start=0, stop=cfg["n_samples_to_take"])
-        deeptau_scores = pd.read_hdf(p, key='deeptau_scores', start=0, stop=cfg["n_samples_to_take"])
-
-        fpr, tpr, _ = roc_curve(labels['label_tau'].values, predictions['pred_tau'].values, pos_label=1) 
-        interpolator = interpolate.interp1d(tpr, fpr)
-        fpr_arrays.append(interpolator(tpr_grid))
-
-        fpr_deeptau, tpr_deeptau, _ = roc_curve(labels['label_tau'].values, deeptau_scores['deeptau_score'].values, pos_label=1)
-        interpolator_deeptau = interpolate.interp1d(tpr_deeptau, fpr_deeptau)
-        fpr_deeptau_arrays.append(interpolator_deeptau(tpr_grid))
-
-        auc.append(roc_auc_score(labels['label_tau'], predictions['pred_tau']))
-        auc_deeptau.append(roc_auc_score(labels['label_tau'], deeptau_scores['deeptau_score']))
-
-    fpr_mean = np.mean(fpr_arrays, axis=0)
-    fpr_std = np.std(fpr_arrays, axis=0)
-    fpr_deeptau_mean = np.mean(fpr_deeptau_arrays, axis=0)
-    fpr_deeptau_std = np.std(fpr_deeptau_arrays, axis=0)
-
-    auc_mean = np.mean(auc, axis=0)
-    auc_std = np.std(auc, axis=0)
-    auc_deeptau_mean = np.mean(auc_deeptau, axis=0)
-    auc_deeptau_std = np.std(auc_deeptau, axis=0)
+    predictions = glob(f'{path_to_artifacts}/predictions/{cfg["dataset_name"]}/*/{vs_type}/*.h5')
+    (fpr_mean, fpr_std, auc_mean, auc_std), (fpr_deeptau_mean, fpr_deeptau_std, auc_deeptau_mean, auc_deeptau_std) = derive_roc_curve(predictions, cfg["n_samples_to_take"], tpr_grid)
 
     plt.plot(
         tpr_grid,
@@ -71,14 +45,14 @@ def main(cfg: DictConfig) -> None:
         fpr_mean-fpr_std,
         fpr_mean+fpr_std,
         color="brown",
-        alpha=0.12
+        alpha=0.15
     )
     plt.fill_between(
         tpr_grid,
         fpr_deeptau_mean-fpr_deeptau_std,
         fpr_deeptau_mean+fpr_deeptau_std,
         color="gray",
-        alpha=0.12
+        alpha=0.15
     )
 
     # plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
@@ -92,7 +66,7 @@ def main(cfg: DictConfig) -> None:
 
     plt.title(f'vs ({vs_type}), dataset ({cfg["dataset_name"]}, {cfg["n_samples_to_take"] // 1000}k samples)', fontsize=24)
     plt.grid()
-    plt.legend(loc="upper left", fontsize=22)
+    plt.legend(loc="upper left", fontsize=20)
     plt.show()
     fig.savefig(figure_filename)
 
