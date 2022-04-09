@@ -13,5 +13,5 @@ batch_size:
   train: 125
   val: 125
   test: 1250
-return_deeptau_score: False
-recompute_tau_type: False
+return_deeptau_score: ???
+recompute_tau_type: ???

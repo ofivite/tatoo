@@ -25,11 +25,11 @@ def main(cfg: DictConfig) -> None:
         path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/model/')
     model = load_model(path_to_model)
 
-    for p in glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/ShuffleMergeSpectral_*/{cfg["vs_type"]}')):
+    for p in glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["vs_type"]}')):
         file_name = p.split('/')[-2]
         dataset = tf.data.experimental.load(p)
 
-        print(f'\n-> Predicting {file_name}\n')
+        print(f'\n-> Predicting {file_name}')
         predictions, labels, deeptau_scores = [], [], []
         for (X, y, deeptau_score) in dataset:
             predictions.append(model.predict(X))
@@ -40,7 +40,7 @@ def main(cfg: DictConfig) -> None:
         labels = tf.concat(labels, axis=0).numpy()
         deeptau_scores = tf.concat(deeptau_scores, axis=0).numpy()
 
-        print(f'\n-> Saving to hdf5\n')
+        print(f'   Saving to hdf5\n')
         predictions = pd.DataFrame({f'pred_{tau_type}': predictions[:, int(idx)] for tau_type, idx in cfg["tau_type_to_node"].items()})
         labels = pd.DataFrame({f'label_{tau_type}': labels[:, int(idx)] for tau_type, idx in cfg["tau_type_to_node"].items()}, dtype=np.int64)
         deeptau_scores = pd.DataFrame({f'deeptau_score': deeptau_scores})
