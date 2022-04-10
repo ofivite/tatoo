@@ -10,19 +10,21 @@ import tensorflow as tf
 from models.taco import TacoNet
 from models.transformer import Transformer
 
-# tf.config.set_visible_devices([], device_type='GPU')
-# tf.config.list_logical_devices()
-physical_devices = tf.config.list_physical_devices('GPU') 
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
-tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
-    [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=8*1024)])
-
 import mlflow
 from mlflow.tracking.context.git_context import _get_git_commit
 mlflow.tensorflow.autolog(log_models=False) 
 
 @hydra.main(config_path='configs', config_name='train')
 def main(cfg: DictConfig) -> None:
+
+    # setup gpu
+    physical_devices = tf.config.list_physical_devices('GPU') 
+    # tf.config.experimental.set_memory_growth(physical_devices[cfg["gpu_id"]], True)
+    tf.config.set_logical_device_configuration(
+            physical_devices[cfg["gpu_id"]],
+            [tf.config.LogicalDeviceConfiguration(memory_limit=cfg["memory_limit"]*1024)])
+    logical_gpus = tf.config.list_logical_devices('GPU')
+    print(len(physical_devices), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
 
     # set up mlflow experiment id
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
