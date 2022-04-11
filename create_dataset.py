@@ -4,7 +4,7 @@ import shutil
 from collections import defaultdict
 import hydra
 from hydra.utils import to_absolute_path
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_ragged
 from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
 
@@ -61,7 +61,9 @@ def main(cfg: DictConfig) -> None:
             for tau_type, tau_type_value in tau_type_map.items():
                 a[f'label_{tau_type}'] = ak.values_astype(a[tau_type_column] == tau_type_value, np.int32)
                 label_columns.append(f'label_{tau_type}')
-
+            with open_dict(cfg):
+                cfg["label_columns"] = label_columns
+  
             time_2 = time.time()
             print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 
@@ -74,7 +76,7 @@ def main(cfg: DictConfig) -> None:
 
                  # convert awkward to TF ragged arrays
                 X = awkward_to_ragged(a_selected, cfg['feature_names']) # keep only feats from feature_names
-                y = ak.to_pandas(a_selected[label_columns]).values
+                y = ak.to_pandas(a_selected[cfg["label_columns"]]).values
 
                 if cfg['return_deeptau_score']:
                     deeptau_score = ak.to_pandas(a_selected[cfg["deeptau_columns"]])
@@ -95,7 +97,7 @@ def main(cfg: DictConfig) -> None:
                 print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
 
                 # remove existing datasets
-                path_to_dataset = to_absolute_path(f'datasets/{cfg.dataset_name}/{dataset_type}/{os.path.basename(file_name)}/{tau_type}')
+                path_to_dataset = to_absolute_path(f'datasets/{cfg["dataset_name"]}/{dataset_type}/{os.path.basename(file_name)}/{tau_type}')
                 if os.path.exists(path_to_dataset):
                     shutil.rmtree(path_to_dataset)
                 else:
