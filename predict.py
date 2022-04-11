@@ -18,6 +18,15 @@ tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
 @hydra.main(config_path='configs', config_name='predict')
 def main(cfg: DictConfig) -> None:
 
+    # setup gpu
+    physical_devices = tf.config.list_physical_devices('GPU') 
+    # tf.config.experimental.set_memory_growth(physical_devices[cfg["gpu_id"]], True)
+    tf.config.set_logical_device_configuration(
+            physical_devices[cfg["gpu_id"]],
+            [tf.config.LogicalDeviceConfiguration(memory_limit=cfg["memory_limit"]*1024)])
+    logical_gpus = tf.config.list_logical_devices('GPU')
+    print(len(physical_devices), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+
     print('\n-> Loading model\n')
     if cfg["checkpoint"] is not None:
         path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/checkpoints/{cfg["checkpoint"]}')
