@@ -1,21 +1,17 @@
 import os
 import time
 import shutil
+from collections import defaultdict
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
-from utils.data_preprocessing import load_from_file, preprocess_array, preprocess_labels, awkward_to_ragged
+from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_ragged
 from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
 
 import tensorflow as tf
 import awkward as ak
 import numpy as np
 from numba.core import types
-
-physical_devices = tf.config.list_physical_devices('GPU') 
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
-tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
-                                                        [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=8*1024)])
 
 @hydra.main(config_path='configs', config_name='create_dataset')
 def main(cfg: DictConfig) -> None:
@@ -25,12 +21,11 @@ def main(cfg: DictConfig) -> None:
     tau_type_map = cfg['gen_cfg']['tau_type_map']
     tree_name = cfg['data_cfg']['tree_name']
     input_branches = cfg['data_cfg']['input_branches']
-    vs_type = cfg['vs_type']
     
     for dataset_type in cfg['data_cfg']['input_files'].keys():
         files = OmegaConf.to_object(cfg['data_cfg']['input_files'][dataset_type])
         print(f'\n-> Processing input files ({dataset_type})')
-        n_samples = {'tau': 0, vs_type: 0}
+        n_samples = defaultdict(int)
 
         for file_name, tau_types in files.items():
             time_0 = time.time()
@@ -61,45 +56,56 @@ def main(cfg: DictConfig) -> None:
             else:
                 tau_type_column = 'tauType'
 
-            a = preprocess_labels(a, tau_type_column, tau_types, tau_type_map)
+            # create one-hot encoded labels
+            label_columns = []
+            for tau_type, tau_type_value in tau_type_map.items():
+                a[f'label_{tau_type}'] = ak.values_astype(a[tau_type_column] == tau_type_value, np.int32)
+                label_columns.append(f'label_{tau_type}')
+
             time_2 = time.time()
             print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 
-            # convert awkward to TF ragged arrays
-            X = awkward_to_ragged(a, cfg['feature_names']) # keep only feats from feature_names
-            y = ak.to_pandas(a[['node_tau', f'node_{vs_type}']]).values
-            for k in n_samples.keys():
-                n_samples[k] += np.sum(a[f'node_{k}'])
-            if cfg['return_deeptau_score']:
-                deeptau_score = ak.to_pandas(a[f'tau_byDeepTau2017v2p1VS{vs_type}raw'])
-                deeptau_score = np.squeeze(deeptau_score.values)
-                data = (X, y, deeptau_score)
-            else:
-                data = (X, y)
-            
-            # create TF dataset 
-            dataset = tf.data.Dataset.from_tensor_slices(data)
-            if cfg['cache']:
-                dataset = dataset.cache()
-            if cfg['shuffle_buffer_size'] is not None:
-                dataset = dataset.shuffle(cfg['shuffle_buffer_size'])
-            dataset = dataset.batch(cfg['batch_size'][dataset_type])
-            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-            time_3 = time.time()
-            print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
+            for tau_type in tau_types:
+                # select only given tau_type
+                a_selected = a[a[f'label_{tau_type}'] == 1]
+                n_selected = len(a_selected)
+                n_samples[tau_type] += n_selected
+                print(f'        Selected: {tau_type}: {n_selected} samples')
 
-            # remove existing datasets
-            path_to_dataset = to_absolute_path(f'datasets/{cfg.dataset_name}/{dataset_type}/{os.path.basename(file_name)}/{vs_type}')
-            if os.path.exists(path_to_dataset):
-                shutil.rmtree(path_to_dataset)
-            else:
-                os.makedirs(path_to_dataset, exist_ok=True)
+                 # convert awkward to TF ragged arrays
+                X = awkward_to_ragged(a_selected, cfg['feature_names']) # keep only feats from feature_names
+                y = ak.to_pandas(a_selected[label_columns]).values
 
-            # save
-            tf.data.experimental.save(dataset, path_to_dataset)
-            OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
-            time_4 = time.time()
-            print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
+                if cfg['return_deeptau_score']:
+                    deeptau_score = ak.to_pandas(a_selected[cfg["deeptau_columns"]])
+                    deeptau_score = np.squeeze(deeptau_score.values)
+                    data = (X, y, deeptau_score)
+                else:
+                    data = (X, y)
+                
+                # create TF dataset 
+                dataset = tf.data.Dataset.from_tensor_slices(data)
+                if cfg['cache']:
+                    dataset = dataset.cache()
+                if cfg['shuffle_buffer_size'] is not None:
+                    dataset = dataset.shuffle(cfg['shuffle_buffer_size'])
+                dataset = dataset.batch(cfg['batch_size'][dataset_type])
+                dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+                time_3 = time.time()
+                print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
+
+                # remove existing datasets
+                path_to_dataset = to_absolute_path(f'datasets/{cfg.dataset_name}/{dataset_type}/{os.path.basename(file_name)}/{tau_type}')
+                if os.path.exists(path_to_dataset):
+                    shutil.rmtree(path_to_dataset)
+                else:
+                    os.makedirs(path_to_dataset, exist_ok=True)
+
+                # save
+                tf.data.experimental.save(dataset, path_to_dataset)
+                OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
+                time_4 = time.time()
+                print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
 
         print(f'\n-> Dataset ({dataset_type}) contains:')
         for k, v in n_samples.items():

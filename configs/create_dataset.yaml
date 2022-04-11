@@ -13,5 +13,10 @@ batch_size:
   train: 125
   val: 125
   test: 1250
-return_deeptau_score: ???
+
 recompute_tau_type: ???
+return_deeptau_score: ???
+deeptau_columns:  # if return_deeptau_score=True, will return them in this order:
+  - tau_byDeepTau2017v2p1VSeraw
+  - tau_byDeepTau2017v2p1VSmuraw
+  - tau_byDeepTau2017v2p1VSjetraw 

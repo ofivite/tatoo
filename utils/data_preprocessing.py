@@ -62,18 +62,3 @@ def preprocess_array(a):
     a = ak.nan_to_num(a, nan=0., posinf=0., neginf=0.)
 
     return a 
-
-def preprocess_labels(a, tau_type_column, types_to_select, tau_type_map):
-    tau_types_selection = np.full(len(a[tau_type_column]), False) 
-
-    for tau_type in types_to_select:
-        tau_types_selection = np.logical_or(tau_types_selection, a[tau_type_column]==tau_type_map[tau_type])
-    a = a[tau_types_selection]
-
-    print('        Selected:')
-    for tau_type, tau_type_value in tau_type_map.items():
-        a[f'node_{tau_type}'] = ak.values_astype(a[tau_type_column] == tau_type_value, np.int32)
-        n_samples = np.sum(a[f'node_{tau_type}'])
-        print(f'          {tau_type}: {n_samples} samples')
-    
-    return a
