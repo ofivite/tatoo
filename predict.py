@@ -1,4 +1,5 @@
 import os
+import yaml
 from glob import glob
 import hydra
 from hydra.utils import to_absolute_path
@@ -17,6 +18,7 @@ tf.config.experimental.set_virtual_device_configuration(physical_devices[0],
 
 @hydra.main(config_path='configs', config_name='predict')
 def main(cfg: DictConfig) -> None:
+    mlflow.set_tracking_uri(f'file://{to_absolute_path(cfg["path_to_mlflow"])}')
 
     # setup gpu
     physical_devices = tf.config.list_physical_devices('GPU') 
@@ -34,9 +36,13 @@ def main(cfg: DictConfig) -> None:
         path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/model/')
     model = load_model(path_to_model)
 
-    for p in glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["vs_type"]}')):
+    for p in glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["tau_type"]}')):
         file_name = p.split('/')[-2]
         dataset = tf.data.experimental.load(p)
+
+        # load cfg used to produce dataset
+        with open(to_absolute_path(f'{p}/cfg.yaml'), 'r') as f:
+            dataset_cfg = yaml.safe_load(f)
 
         print(f'\n-> Predicting {file_name}')
         predictions, labels, deeptau_scores = [], [], []
@@ -48,20 +54,26 @@ def main(cfg: DictConfig) -> None:
         predictions = tf.concat(predictions, axis=0).numpy()
         labels = tf.concat(labels, axis=0).numpy()
         deeptau_scores = tf.concat(deeptau_scores, axis=0).numpy()
-
-        print(f'   Saving to hdf5\n')
-        predictions = pd.DataFrame({f'pred_{tau_type}': predictions[:, int(idx)] for tau_type, idx in cfg["tau_type_to_node"].items()})
-        labels = pd.DataFrame({f'label_{tau_type}': labels[:, int(idx)] for tau_type, idx in cfg["tau_type_to_node"].items()}, dtype=np.int64)
-        deeptau_scores = pd.DataFrame({f'deeptau_score': deeptau_scores})
-        
-        predictions.to_hdf(f'{cfg["output_filename"]}.h5', key='predictions', mode='w', format='fixed', complevel=1, complib='zlib')
-        labels.to_hdf(f'{cfg["output_filename"]}.h5', key='labels', mode='r+', format='fixed', complevel=1, complib='zlib')
-        deeptau_scores.to_hdf(f'{cfg["output_filename"]}.h5', key='deeptau_scores', mode='r+', format='fixed', complevel=1, complib='zlib')
         
         # log to mlflow and delete intermediate file
-        mlflow.set_tracking_uri(f'file://{to_absolute_path(cfg["path_to_mlflow"])}')
         with mlflow.start_run(experiment_id=cfg["experiment_id"], run_id=cfg["run_id"]) as active_run:
-            mlflow.log_artifact(f'{cfg["output_filename"]}.h5', f'predictions/{cfg["dataset_name"]}/{file_name}/{cfg["vs_type"]}')
+
+            # extract mapping between model nodes and corresponding label names
+            model_node_to_name = {k: v for k,v in active_run.data.params.items() if k.startswith('model_node_')}
+            model_node_to_name = {int(k.split("model_node_")[-1]): v for k,v in model_node_to_name.items()}
+            model_node_names = [model_node_to_name[k] for k in sorted(model_node_to_name)]
+
+            predictions = pd.DataFrame(data=predictions, columns=[f'pred_{tau_type}' for tau_type in model_node_names])
+            labels = pd.DataFrame(data=labels, columns=dataset_cfg["label_columns"], dtype=np.int64)
+            deeptau_scores = pd.DataFrame(data=deeptau_scores, columns=dataset_cfg["deeptau_columns"])
+            
+            print(f'   Saving to hdf5\n')
+            predictions.to_hdf(f'{cfg["output_filename"]}.h5', key='predictions', mode='w', format='fixed', complevel=1, complib='zlib')
+            labels.to_hdf(f'{cfg["output_filename"]}.h5', key='labels', mode='r+', format='fixed', complevel=1, complib='zlib')
+            deeptau_scores.to_hdf(f'{cfg["output_filename"]}.h5', key='deeptau_scores', mode='r+', format='fixed', complevel=1, complib='zlib')
+        
+
+            mlflow.log_artifact(f'{cfg["output_filename"]}.h5', f'predictions/{cfg["dataset_name"]}/{file_name}/{cfg["tau_type"]}')
         os.remove(f'{cfg["output_filename"]}.h5')
 
 if __name__ == '__main__':

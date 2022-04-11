@@ -1,11 +1,11 @@
 dataset_name: ???
 dataset_type: ???
 filename_prefix: ???
+tau_type: ???
 
-vs_type: ???
-tau_type_to_node:
-  tau: 0
-  ${vs_type}: 1
+# gpu
+gpu_id: 0
+memory_limit: 8 # in Gb
 
 path_to_mlflow: mlruns
 experiment_id: ???
