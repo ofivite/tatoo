@@ -1,27 +1,45 @@
+from collections import defaultdict
 import numpy as np
 import pandas as pd
 from scipy import interpolate
 from sklearn.metrics import roc_auc_score, roc_curve
 
-def derive_roc_curve(predictions, n_samples_to_take, tpr_grid):
+def sample_predictions(tau_type_to_files, n_per_split, n_splits):
+    samples = defaultdict(list)
+    key_list = ['predictions', 'labels', 'deeptau_scores']
+    for k in key_list:
+        splits_per_tau_type = [] # to collect splits per tau type
+        for tau_type, files in tau_type_to_files.items():
+            df = pd.concat([pd.read_hdf(f, key=k) for f in files], axis=0, ignore_index=True)
+            df_splits = np.array_split(df, len(df)//n_per_split)[:n_splits]
+            splits_per_tau_type.append(df_splits)
+
+        for i in range(n_splits):
+            splits = [s[i] for s in splits_per_tau_type]
+            splits = pd.concat(splits, axis=0, ignore_index=True)
+            samples[k].append(splits)
+        # for splits in zip(l): # zip all tau types together
+        #     print(type(splits), type(splits[0]), len(splits), len(l))
+        #     samples[k].append() # concat across tau types
+
+    samples = [{k: samples[k][i] for k in key_list} for i in range(n_splits)]
+    return samples
+
+def derive_roc_curves(prediction_samples, tpr_grid, deeptau_score_name):
     fpr_arrays, fpr_deeptau_arrays = [], []
     auc, auc_deeptau = [], []
 
-    for p in predictions:
-        predictions = pd.read_hdf(p, key='predictions', start=0, stop=n_samples_to_take) 
-        labels = pd.read_hdf(p, key='labels', start=0, stop=n_samples_to_take)
-        deeptau_scores = pd.read_hdf(p, key='deeptau_scores', start=0, stop=n_samples_to_take)
-
-        fpr, tpr, _ = roc_curve(labels['label_tau'].values, predictions['pred_tau'].values, pos_label=1) 
+    for pred_data in prediction_samples:
+        fpr, tpr, _ = roc_curve(pred_data['labels']['label_tau'].values, pred_data['predictions']['pred_tau'].values, pos_label=1) 
         interpolator = interpolate.interp1d(tpr, fpr)
         fpr_arrays.append(interpolator(tpr_grid))
 
-        fpr_deeptau, tpr_deeptau, _ = roc_curve(labels['label_tau'].values, deeptau_scores['deeptau_score'].values, pos_label=1)
+        fpr_deeptau, tpr_deeptau, _ = roc_curve(pred_data['labels']['label_tau'].values, pred_data['deeptau_scores'][deeptau_score_name].values, pos_label=1)
         interpolator_deeptau = interpolate.interp1d(tpr_deeptau, fpr_deeptau)
         fpr_deeptau_arrays.append(interpolator_deeptau(tpr_grid))
 
-        auc.append(roc_auc_score(labels['label_tau'], predictions['pred_tau']))
-        auc_deeptau.append(roc_auc_score(labels['label_tau'], deeptau_scores['deeptau_score']))
+        auc.append(roc_auc_score(pred_data['labels']['label_tau'], pred_data['predictions']['pred_tau']))
+        auc_deeptau.append(roc_auc_score(pred_data['labels']['label_tau'], pred_data['deeptau_scores'][deeptau_score_name]))
 
     fpr_mean = np.mean(fpr_arrays, axis=0)
     fpr_std = np.std(fpr_arrays, axis=0)

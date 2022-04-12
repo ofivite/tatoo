@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 from glob import glob
 import hydra
 from hydra.utils import to_absolute_path
@@ -9,7 +10,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from utils.plotting import derive_roc_curve
+from utils.plotting import derive_roc_curves, sample_predictions
 
 @hydra.main(config_path='configs', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
@@ -21,8 +22,15 @@ def main(cfg: DictConfig) -> None:
 
     for model_name, (experiment_id, run_id, linestyle, alpha) in cfg["models"].items():
         path_to_artifacts = to_absolute_path(f'{cfg["path_to_mlflow"]}/{experiment_id}/{run_id}/artifacts')
-        predictions = glob(f'{path_to_artifacts}/predictions/{cfg["dataset_name"]}/*/{vs_type}/*.h5')
-        (fpr_mean, fpr_std, auc_mean, auc_std), (fpr_deeptau_mean, fpr_deeptau_std, auc_deeptau_mean, auc_deeptau_std) = derive_roc_curve(predictions, cfg["n_samples_to_take"], tpr_grid)
+
+        tau_type_to_files = defaultdict(list)
+        for dataset, tau_types in cfg["datasets"].items():
+            for tau_type in tau_types:
+                tau_type_to_files[tau_type] += glob(f'{path_to_artifacts}/predictions/{dataset}/*/{tau_type}/*.h5')
+        predictions = sample_predictions(tau_type_to_files, cfg["n_per_split"], cfg["n_splits"]) 
+
+
+        (fpr_mean, fpr_std, auc_mean, auc_std), (fpr_deeptau_mean, fpr_deeptau_std, auc_deeptau_mean, auc_deeptau_std) = derive_roc_curves(predictions, tpr_grid, cfg["deeptau_score_name"])
         
         plt.plot(
             tpr_grid,
@@ -67,7 +75,7 @@ def main(cfg: DictConfig) -> None:
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
 
-    plt.title(f'vs ({vs_type}), dataset ({cfg["dataset_name"]}, {cfg["n_samples_to_take"] // 1000}k samples)', fontsize=24)
+    plt.title(f'vs ({vs_type}), dataset ({cfg["datasets_mix_name"]}, 2x{cfg["n_per_split"] // 1000}k samples)', fontsize=24)
     plt.grid()
     plt.legend(loc="upper left", fontsize=20)
     plt.show()

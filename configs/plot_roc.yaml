@@ -1,9 +1,14 @@
-dataset_name: ???
+datasets_mix_name: ??? # to display in the title
+datasets: 
+  ???: ['tau']
+  ???: ['${vs_type}']
+
 vs_type: ???
-input_filename: predictions
-n_samples_to_take: 80000 # 2*40k
+n_per_split: 40000 # per class
+n_splits: 5 # will split predictions into `n_splits` to get uncertainty estimate
 
 path_to_mlflow: mlruns
+deeptau_score_name: tau_byDeepTau2017v2p1VS${vs_type}raw
 models: # DeepTau predictions will be taken from the last model in the list
   ???: [???, ???, ???, ???] # model name (to display in the legend) : [experiment_id, run_id, linestyle, alpha]
 
