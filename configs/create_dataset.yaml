@@ -4,7 +4,6 @@ defaults:
   - data@gen_cfg: gen_config
   - _self_
 
-vs_type: ???
 dataset_name: ???
 
 cache: False

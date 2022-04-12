@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:
                                                             a['sampleType'], is_dR_matched,
                                                             a['genLepton_index'], a['genJet_index'], a['genLepton_kind'], a['genLepton_vis_pt']) # first execution might be slower due to compilation
                 if sum_:=np.sum(a[tau_type_column]!=a["tauType"]):
-                    print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(a["tauType"])*100}\%\n')
+                    print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(a["tauType"])*100:.1f}%\n')
             else:
                 tau_type_column = 'tauType'
 
