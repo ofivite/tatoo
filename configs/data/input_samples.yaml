@@ -14,7 +14,7 @@ input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
 input_data: # "sample_alias": [list of strings with tau types to be selected]
   train:
     recompute_tau_type: False
-    return_deeptau_columns: null
+    add_columns: null
     files:
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_100": ["tau", "e", "mu", "jet"]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_101": ["tau", "e", "mu", "jet"]
@@ -69,7 +69,7 @@ input_data: # "sample_alias": [list of strings with tau types to be selected]
   
   val:
     recompute_tau_type: False
-    return_deeptau_columns: null
+    add_columns: null
     files: 
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_495": ["tau", "e", "mu", "jet"]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_496": ["tau", "e", "mu", "jet"]
@@ -79,10 +79,13 @@ input_data: # "sample_alias": [list of strings with tau types to be selected]
   
   test:
     recompute_tau_type: True
-    return_deeptau_columns:  # will return them in this order; set to null to skip returning
+    add_columns:  # will return them in this order; set to null to skip returning
       - tau_byDeepTau2017v2p1VSeraw
       - tau_byDeepTau2017v2p1VSmuraw
-      - tau_byDeepTau2017v2p1VSjetraw 
+      - tau_byDeepTau2017v2p1VSjetraw
+      - tau_pt
+      - tau_eta
+      - tau_decayMode 
     files:
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_490": ["tau", "e", "mu", "jet"]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_491": ["tau", "e", "mu", "jet"]

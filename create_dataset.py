@@ -81,10 +81,10 @@ def main(cfg: DictConfig) -> None:
                 X = awkward_to_ragged(a_selected, cfg['feature_names']) # keep only feats from feature_names
                 y = ak.to_pandas(a_selected[cfg["label_columns"]]).values
 
-                if dataset_cfg['return_deeptau_columns'] is not None:
-                    deeptau_score = ak.to_pandas(a_selected[dataset_cfg['return_deeptau_columns']])
-                    deeptau_score = np.squeeze(deeptau_score.values)
-                    data = (X, y, deeptau_score)
+                if dataset_cfg['add_columns'] is not None:
+                    add_columns = ak.to_pandas(a_selected[dataset_cfg['add_columns']])
+                    add_columns = np.squeeze(add_columns.values)
+                    data = (X, y, add_columns)
                 else:
                     data = (X, y)
                 
