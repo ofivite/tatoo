@@ -40,20 +40,22 @@ def main(cfg: DictConfig) -> None:
         file_name = p.split('/')[-2]
         dataset = tf.data.experimental.load(p)
 
-        # load cfg used to produce dataset
+        # load cfg used to produce dataset and retrieve column names
         with open(to_absolute_path(f'{p}/cfg.yaml'), 'r') as f:
             dataset_cfg = yaml.safe_load(f)
+        label_column_names = dataset_cfg["label_columns"]
+        add_column_names = dataset_cfg['data_cfg']['input_data'][cfg["dataset_type"]]["add_columns"]
 
         print(f'\n-> Predicting {file_name}')
-        predictions, labels, deeptau_scores = [], [], []
-        for (X, y, deeptau_score) in dataset:
+        predictions, labels, add_columns = [], [], []
+        for (X, y, add_data) in dataset:
             predictions.append(model.predict(X))
             labels.append(y)
-            deeptau_scores.append(deeptau_score)
+            add_columns.append(add_data)
 
         predictions = tf.concat(predictions, axis=0).numpy()
         labels = tf.concat(labels, axis=0).numpy()
-        deeptau_scores = tf.concat(deeptau_scores, axis=0).numpy()
+        add_columns = tf.concat(add_columns, axis=0).numpy()
         
         # log to mlflow and delete intermediate file
         with mlflow.start_run(experiment_id=cfg["experiment_id"], run_id=cfg["run_id"]) as active_run:
@@ -64,13 +66,13 @@ def main(cfg: DictConfig) -> None:
             model_node_names = [model_node_to_name[k] for k in sorted(model_node_to_name)]
 
             predictions = pd.DataFrame(data=predictions, columns=[f'pred_{tau_type}' for tau_type in model_node_names])
-            labels = pd.DataFrame(data=labels, columns=dataset_cfg["label_columns"], dtype=np.int64)
-            deeptau_scores = pd.DataFrame(data=deeptau_scores, columns=dataset_cfg["deeptau_columns"])
+            labels = pd.DataFrame(data=labels, columns=label_column_names, dtype=np.int64)
+            add_columns = pd.DataFrame(data=add_columns, columns=add_column_names)
             
             print(f'   Saving to hdf5\n')
             predictions.to_hdf(f'{cfg["output_filename"]}.h5', key='predictions', mode='w', format='fixed', complevel=1, complib='zlib')
             labels.to_hdf(f'{cfg["output_filename"]}.h5', key='labels', mode='r+', format='fixed', complevel=1, complib='zlib')
-            deeptau_scores.to_hdf(f'{cfg["output_filename"]}.h5', key='deeptau_scores', mode='r+', format='fixed', complevel=1, complib='zlib')
+            add_columns.to_hdf(f'{cfg["output_filename"]}.h5', key='add_columns', mode='r+', format='fixed', complevel=1, complib='zlib')
         
 
             mlflow.log_artifact(f'{cfg["output_filename"]}.h5', f'predictions/{cfg["dataset_name"]}/{file_name}/{cfg["tau_type"]}')
