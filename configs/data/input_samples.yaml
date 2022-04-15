@@ -52,7 +52,7 @@ input_data: # "sample_alias": [list of strings with tau types to be selected]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_133": ["tau", "e", "mu", "jet"]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_134": ["tau", "e", "mu", "jet"]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_135": ["tau", "e", "mu", "jet"]
-      "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_136": ["tau", "e", "mu", "jet"]
+      # "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_136": ["tau", "e", "mu", "jet"] # absent in "data" folder
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_137": ["tau", "e", "mu", "jet"]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_138": ["tau", "e", "mu", "jet"]
       "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_139": ["tau", "e", "mu", "jet"]

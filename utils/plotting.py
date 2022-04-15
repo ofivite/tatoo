@@ -11,6 +11,7 @@ def sample_predictions(tau_type_to_files, n_per_split, n_splits):
         splits_per_tau_type = [] # to collect splits per tau type
         for tau_type, files in tau_type_to_files.items():
             df = pd.concat([pd.read_hdf(f, key=k) for f in files], axis=0, ignore_index=True)
+            df = df.sample(frac=1).reset_index(drop=True) # shuffle before splitting to mix input sources
             df_splits = np.array_split(df, len(df)//n_per_split)[:n_splits]
             splits_per_tau_type.append(df_splits)
 
