@@ -23,7 +23,7 @@ datasets:
 
 # TF dataset formation
 tf_dataset_cfg:
-  shuffle_buffer_size: null # null to not shuffle
+  shuffle_buffer_size: 40000 # null to not shuffle
   cache: null # null to not cache the training dataset
   train_batch_size: ???
   val_batch_size: ???

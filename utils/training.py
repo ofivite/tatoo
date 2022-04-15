@@ -26,7 +26,7 @@ def compose_datasets(datasets, tf_dataset_cfg):
                 train_probas += n_files*[1./(n_tau_types*n_files) ]
 
     assert round(sum(train_probas), 5) == 1
-    train_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['train'], weights=train_probas, seed=1234, stop_on_empty_dataset=True) # True so that the last batches are not purely of one class
+    train_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['train'], weights=train_probas, seed=1234, stop_on_empty_dataset=False) # True so that the last batches are not purely of one class
     val_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['val'], seed=1234, stop_on_empty_dataset=False)
 
     # form TF datasets
