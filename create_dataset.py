@@ -21,9 +21,11 @@ def main(cfg: DictConfig) -> None:
     tau_type_map = cfg['gen_cfg']['tau_type_map']
     tree_name = cfg['data_cfg']['tree_name']
     input_branches = cfg['data_cfg']['input_branches']
-    
-    for dataset_type in cfg['data_cfg']['input_files'].keys():
-        files = OmegaConf.to_object(cfg['data_cfg']['input_files'][dataset_type])
+    input_data = OmegaConf.to_object(cfg['data_cfg']['input_data'])
+
+    for dataset_type in input_data.keys():
+        dataset_cfg = input_data[dataset_type]
+        files = dataset_cfg.pop('files')
         print(f'\n-> Processing input files ({dataset_type})')
         n_samples = defaultdict(int)
 
@@ -39,7 +41,7 @@ def main(cfg: DictConfig) -> None:
             a = preprocess_array(a)
 
             # preprocess labels
-            if cfg['recompute_tau_type']:
+            if dataset_cfg['recompute_tau_type']:
                 genLepton_match_map = dict_to_numba(cfg['gen_cfg']['genLepton_match_map'], key_type=types.unicode_type, value_type=types.int32)
                 genLepton_kind_map = dict_to_numba(cfg['gen_cfg']['genLepton_kind_map'], key_type=types.unicode_type, value_type=types.int32)
                 sample_type_map = dict_to_numba(cfg['gen_cfg']['sample_type_map'], key_type=types.unicode_type, value_type=types.int32)
@@ -68,6 +70,7 @@ def main(cfg: DictConfig) -> None:
             print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 
             for tau_type in tau_types:
+                time_2 = time.time()
                 # select only given tau_type
                 a_selected = a[a[f'label_{tau_type}'] == 1]
                 n_selected = len(a_selected)
@@ -78,8 +81,8 @@ def main(cfg: DictConfig) -> None:
                 X = awkward_to_ragged(a_selected, cfg['feature_names']) # keep only feats from feature_names
                 y = ak.to_pandas(a_selected[cfg["label_columns"]]).values
 
-                if cfg['return_deeptau_score']:
-                    deeptau_score = ak.to_pandas(a_selected[cfg["deeptau_columns"]])
+                if dataset_cfg['return_deeptau_columns'] is not None:
+                    deeptau_score = ak.to_pandas(a_selected[dataset_cfg['return_deeptau_columns']])
                     deeptau_score = np.squeeze(deeptau_score.values)
                     data = (X, y, deeptau_score)
                 else:
@@ -87,12 +90,6 @@ def main(cfg: DictConfig) -> None:
                 
                 # create TF dataset 
                 dataset = tf.data.Dataset.from_tensor_slices(data)
-                if cfg['cache']:
-                    dataset = dataset.cache()
-                if cfg['shuffle_buffer_size'] is not None:
-                    dataset = dataset.shuffle(cfg['shuffle_buffer_size'])
-                dataset = dataset.batch(cfg['batch_size'][dataset_type])
-                dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
                 time_3 = time.time()
                 print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
 
