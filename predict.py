@@ -39,6 +39,8 @@ def main(cfg: DictConfig) -> None:
     for p in glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["tau_type"]}')):
         file_name = p.split('/')[-2]
         dataset = tf.data.experimental.load(p)
+        dataset = dataset.batch(cfg["batch_size"])
+        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
         # load cfg used to produce dataset and retrieve column names
         with open(to_absolute_path(f'{p}/cfg.yaml'), 'r') as f:
