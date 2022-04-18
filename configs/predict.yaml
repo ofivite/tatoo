@@ -3,6 +3,7 @@ dataset_type: ???
 filename_prefix: ???
 tau_type: ???
 batch_size: ???
+n_files: -1
 
 # gpu
 gpu_id: 0

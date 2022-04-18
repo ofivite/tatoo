@@ -36,7 +36,11 @@ def main(cfg: DictConfig) -> None:
         path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/model/')
     model = load_model(path_to_model)
 
-    for p in glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["tau_type"]}')):
+    if cfg["n_files"] == -1: # take all the files
+        paths = glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["tau_type"]}'))
+    else: # take only first n_files
+        paths = glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["tau_type"]}'))[:cfg["n_files"]]
+    for p in paths:
         file_name = p.split('/')[-2]
         dataset = tf.data.experimental.load(p)
         dataset = dataset.batch(cfg["batch_size"])
