@@ -6,6 +6,9 @@ datasets:
 vs_type: ???
 n_per_split: 40000 # per class
 n_splits: 5 # will split predictions into `n_splits` to get uncertainty estimate
+pt_bin: [20, 100]
+eta_bin: [0, 2.5]
+dm_set: [0, 1, 2, 10, 11]
 
 path_to_mlflow: mlruns
 deeptau_score_name: tau_byDeepTau2017v2p1VS${vs_type}raw
@@ -24,4 +27,4 @@ auc_precision:
   jet: 3
   e: 4
   mu: 4
-figure_filename: roc_${vs_type} # will be saved in mlflow artifacts of the last model in "models"
+figure_filename: roc_${vs_type}_${datasets_mix_name}_pt_${pt_bin[0]}_${pt_bin[1]}_eta_${eta_bin[0]}_${eta_bin[1]}_dm_ # will be saved in mlflow artifacts of the last model in "models"

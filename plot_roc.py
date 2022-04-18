@@ -27,7 +27,7 @@ def main(cfg: DictConfig) -> None:
         for dataset, tau_types in cfg["datasets"].items():
             for tau_type in tau_types:
                 tau_type_to_files[tau_type] += glob(f'{path_to_artifacts}/predictions/{dataset}/*/{tau_type}/*.h5')
-        predictions = sample_predictions(tau_type_to_files, cfg["n_per_split"], cfg["n_splits"]) 
+        predictions = sample_predictions(tau_type_to_files, cfg["pt_bin"], cfg["eta_bin"], cfg["dm_set"], cfg["n_per_split"], cfg["n_splits"]) 
 
 
         (fpr_mean, fpr_std, auc_mean, auc_std), (fpr_deeptau_mean, fpr_deeptau_std, auc_deeptau_mean, auc_deeptau_std) = derive_roc_curves(predictions, tpr_grid, cfg["deeptau_score_name"])
@@ -65,6 +65,13 @@ def main(cfg: DictConfig) -> None:
         color="gray",
         alpha=0.15
     )
+
+    pt_text = r"$p_T \in ({}, {})$ GeV".format(cfg["pt_bin"][0], cfg["pt_bin"][1])
+    eta_text = r"${} < |\eta| < {}$".format(cfg["eta_bin"][0], cfg["eta_bin"][1])
+    dm_text = r"DM$ \in {}$".format(cfg["dm_set"])
+    ax.text(0.03, 0.86 - len(cfg["models"]) * 0.07, pt_text, fontsize=20, transform=ax.transAxes)
+    ax.text(0.03, 0.8 - len(cfg["models"]) * 0.07, eta_text, fontsize=20, transform=ax.transAxes)
+    ax.text(0.03, 0.74 - len(cfg["models"]) * 0.07, dm_text, fontsize=20, transform=ax.transAxes)
 
     # plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
     plt.yscale('log')
