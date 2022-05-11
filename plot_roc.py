@@ -69,9 +69,9 @@ def main(cfg: DictConfig) -> None:
     pt_text = r"$p_T \in ({}, {})$ GeV".format(cfg["pt_bin"][0], cfg["pt_bin"][1])
     eta_text = r"${} < |\eta| < {}$".format(cfg["eta_bin"][0], cfg["eta_bin"][1])
     dm_text = r"DM$ \in {}$".format(cfg["dm_set"])
-    ax.text(0.03, 0.86 - len(cfg["models"]) * 0.07, pt_text, fontsize=20, transform=ax.transAxes)
-    ax.text(0.03, 0.8 - len(cfg["models"]) * 0.07, eta_text, fontsize=20, transform=ax.transAxes)
-    ax.text(0.03, 0.74 - len(cfg["models"]) * 0.07, dm_text, fontsize=20, transform=ax.transAxes)
+    ax.text(0.03, 0.8 - len(cfg["models"]) * 0.07, pt_text, fontsize=20, transform=ax.transAxes)
+    ax.text(0.03, 0.74 - len(cfg["models"]) * 0.07, eta_text, fontsize=20, transform=ax.transAxes)
+    ax.text(0.03, 0.68 - len(cfg["models"]) * 0.07, dm_text, fontsize=20, transform=ax.transAxes)
 
     # plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
     plt.yscale('log')

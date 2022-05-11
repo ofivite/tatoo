@@ -9,12 +9,12 @@ kwargs:
     embedding_kwargs: 
       out_dim: ${model.kwargs.encoder.dim_model} # override embedding dim to dim_model
     num_layers: 6
-    dim_model: 128
-    dim_head_key: 16
-    dim_head_value: 16
+    dim_model: 64
+    dim_head_key: 8
+    dim_head_value: 8
     num_heads: 8
-    dim_ff: 1024
+    dim_ff: 256 # they usually set it to 4x dim_model
     dropout_rate: 0.1
   decoder:
-    dim_ff_outputs: 100
+    dim_ff_outputs: 256
     n_outputs: 2
