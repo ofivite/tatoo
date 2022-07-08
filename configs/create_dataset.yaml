@@ -5,3 +5,4 @@ defaults:
   - _self_
 
 dataset_name: ???
+path_to_dataset: ??? # directory to store the datasets

@@ -1,6 +1,6 @@
+path_to_dataset: ./datasets
 dataset_name: ???
 dataset_type: ???
-filename_prefix: ???
 tau_type: ???
 batch_size: ???
 n_files: -1

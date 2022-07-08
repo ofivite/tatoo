@@ -14,7 +14,7 @@ def compose_datasets(datasets, tf_dataset_cfg):
             raise RuntimeError(f'key ({dataset_type}) should be present in dataset yaml configuration')
         for dataset_name, dataset_cfg in datasets[dataset_type].items(): # loop over specified train/val datasets
             for tau_type in dataset_cfg["tau_types"]: # loop over tau types specified for this dataset
-                for p in glob(to_absolute_path(f'datasets/{dataset_name}/{dataset_type}/{dataset_cfg["file_prefix"]}*/{tau_type}')): # loop over all globbed files in the dataset
+                for p in glob(to_absolute_path(f'{dataset_cfg["path_to_dataset"]}/{dataset_name}/{dataset_type}/*/{tau_type}')): # loop over all globbed files in the dataset
                     dataset = tf.data.experimental.load(p) 
                     ds_per_tau_type[tau_type].append(dataset) # add TF dataset (1 input file, 1 tau type) to the map  
         
@@ -43,8 +43,8 @@ def compose_datasets(datasets, tf_dataset_cfg):
     class_idx = {}
     for dataset_type in ['train', 'val']:
         dataset_name = list(datasets[dataset_type].keys())[0] # assume that label structure is the same in all datasets, so retrieve from the first one
-        file_prefix =  datasets[dataset_type][dataset_name]["file_prefix"]
-        p = glob(to_absolute_path(f'datasets/{dataset_name}/{dataset_type}/{file_prefix}*/tau'))[0] # load one dataset cfg
+        path_to_dataset = datasets[dataset_type][dataset_name]["path_to_dataset"]
+        p = glob(to_absolute_path(f'{path_to_dataset}/{dataset_name}/{dataset_type}/*/tau'))[0] # load one dataset cfg
         with open(f'{p}/cfg.yaml', 'r') as f:
             data_cfg = yaml.safe_load(f)
         class_idx[dataset_type] = [data_cfg["label_columns"].index(f'label_{c}') for c in tf_dataset_cfg["classes"]] # fetch label indices which correspond to specified classes

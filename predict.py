@@ -37,9 +37,9 @@ def main(cfg: DictConfig) -> None:
     model = load_model(path_to_model)
 
     if cfg["n_files"] == -1: # take all the files
-        paths = glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["tau_type"]}'))
+        paths = glob(to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{cfg["dataset_type"]}/*/{cfg["tau_type"]}'))
     else: # take only first n_files
-        paths = glob(to_absolute_path(f'datasets/{cfg["dataset_name"]}/{cfg["dataset_type"]}/{cfg["filename_prefix"]}*/{cfg["tau_type"]}'))[:cfg["n_files"]]
+        paths = glob(to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{cfg["dataset_type"]}/*/{cfg["tau_type"]}'))[:cfg["n_files"]]
     for p in paths:
         file_name = p.split('/')[-2]
         dataset = tf.data.experimental.load(p)

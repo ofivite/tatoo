@@ -14,11 +14,11 @@ dataset_name: SM_v2 # to log to mlflow for bookkeeping
 datasets: 
   train:
     SM_v2: # will take from "train" subfolder of this dataset
-      file_prefix: ShuffleMergeSpectral_
+      path_to_dataset: ./datasets
       tau_types: ['tau', '${vs_type}']
   val:
     SM_v2: # will take from "val" subfolder of this dataset
-      file_prefix: ShuffleMergeSpectral_
+      path_to_dataset: ./datasets
       tau_types: ['tau', '${vs_type}']  
 
 # TF dataset formation
