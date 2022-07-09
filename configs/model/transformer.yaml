@@ -8,6 +8,7 @@ kwargs:
   encoder:
     embedding_kwargs: 
       out_dim: ${model.kwargs.encoder.dim_model} # override embedding dim to dim_model
+    use_masked_mha: false
     num_layers: 6
     dim_model: 64
     dim_head_key: 8
