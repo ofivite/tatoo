@@ -77,16 +77,23 @@ def main(cfg: DictConfig) -> None:
                 n_samples[tau_type] += n_selected
                 print(f'        Selected: {tau_type}: {n_selected} samples')
 
-                 # convert awkward to TF ragged arrays
-                X = awkward_to_ragged(a_selected, cfg['feature_names']) # keep only feats from feature_names
-                y = ak.to_pandas(a_selected[cfg["label_columns"]]).values
+                # final tuple with elements to be stored into TF dataset
+                data = ()
 
+                # add awkward arrays converted to TF ragged arrays
+                for particle_type, feature_names in cfg['feature_names'].items(): # do this separately for each particle collection
+                    X = awkward_to_ragged(a_selected, particle_type, feature_names) # will keep only feats from feature_names
+                    data += (X,)
+                
+                # all labels to final dataset
+                y = ak.to_pandas(a_selected[cfg["label_columns"]]).values
+                data += (y,)
+
+                # add additional columns if needed
                 if dataset_cfg['add_columns'] is not None:
                     add_columns = ak.to_pandas(a_selected[dataset_cfg['add_columns']])
                     add_columns = np.squeeze(add_columns.values)
-                    data = (X, y, add_columns)
-                else:
-                    data = (X, y)
+                    data += (add_columns,)
                 
                 # create TF dataset 
                 dataset = tf.data.Dataset.from_tensor_slices(data)

@@ -9,6 +9,17 @@ input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                   'pfCand_dxy', 'pfCand_dxy_error', 'pfCand_dz', 'pfCand_dz_error',
                   'pfCand_track_chi2', 'pfCand_track_ndof',
                   'sampleType', 'genLepton_index', 'genJet_index', 'genLepton_kind', 'genLepton_vis_pt', 'genLepton_vis_eta', 'genLepton_vis_phi', 
+                  'ele_pt', 'ele_eta', 'ele_phi', 'ele_cc_ele_energy', 'ele_cc_gamma_energy', 'ele_cc_n_gamma', 
+                  'ele_trackMomentumAtVtx', 'ele_trackMomentumAtCalo', 'ele_trackMomentumOut',
+                  'ele_trackMomentumAtEleClus', 'ele_trackMomentumAtVtxWithConstraint', 
+                  'ele_ecalEnergy', 'ele_ecalEnergy_error', 
+                  'ele_eSuperClusterOverP', 'ele_eSeedClusterOverP', 'ele_eSeedClusterOverPout', 'ele_eEleClusterOverPout',
+                  'ele_deltaEtaSuperClusterTrackAtVtx', 'ele_deltaEtaSeedClusterTrackAtCalo', 'ele_deltaEtaEleClusterTrackAtCalo',
+                  'ele_deltaPhiEleClusterTrackAtCalo', 'ele_deltaPhiSuperClusterTrackAtVtx', 'ele_deltaPhiSeedClusterTrackAtCalo',
+                  'ele_mvaInput_earlyBrem', 'ele_mvaInput_lateBrem', 'ele_mvaInput_sigmaEtaEta', 'ele_mvaInput_hadEnergy', 'ele_mvaInput_deltaEta',
+                  'ele_gsfTrack_normalizedChi2', 'ele_gsfTrack_numberOfValidHits',
+                  'ele_gsfTrack_pt', 'ele_gsfTrack_pt_error', 
+                  'ele_closestCtfTrack_normalizedChi2', 'ele_closestCtfTrack_numberOfValidHits'
                 ]
 
 input_data: # "sample_alias": [list of strings with tau types to be selected]

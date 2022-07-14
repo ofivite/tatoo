@@ -1,6 +1,19 @@
-feature_names: [
-                'r', 'theta', 'rel_pt', 'particle_type', 
-                'charge', 'pvAssociationQuality', 'puppiWeight', 'lostInnerHits', 'nPixelHits', 'hasTrackDetails',
-                'vertex_dx', 'vertex_dy', 'vertex_dz', 'vertex_dx_tauFL', 'vertex_dy_tauFL', 'vertex_dz_tauFL', 
-                'dxy', 'dxy_sig', 'dz', 'dz_sig', 'track_ndof', 'chi2_ndof'
-                ]
+feature_names: 
+  pfCand: [
+            'r', 'theta', 'rel_pt', 'particle_type', 
+            'charge', 'pvAssociationQuality', 'puppiWeight', 'lostInnerHits', 'nPixelHits', 'hasTrackDetails',
+            'vertex_dx', 'vertex_dy', 'vertex_dz', 'vertex_dx_tauFL', 'vertex_dy_tauFL', 'vertex_dz_tauFL', 
+            'dxy', 'dxy_sig', 'dz', 'dz_sig', 'track_ndof', 'chi2_ndof'
+          ]
+  ele:    [
+            'r', 'theta', 'rel_pt', 'particle_type', 
+            'cc_valid', 'cc_ele_rel_energy', 'cc_gamma_rel_energy', 'cc_n_gamma', 
+            'rel_trackMomentumAtVtx', 'rel_trackMomentumAtCalo', 'rel_trackMomentumOut',
+            'rel_trackMomentumAtEleClus', 'rel_trackMomentumAtVtxWithConstraint', 'rel_ecalEnergy', 'ecalEnergy_sig',
+            'eSuperClusterOverP', 'eSeedClusterOverP', 'eSeedClusterOverPout', 'eEleClusterOverPout',
+            'deltaEtaSuperClusterTrackAtVtx', 'deltaEtaSeedClusterTrackAtCalo', 'deltaEtaEleClusterTrackAtCalo',
+            'deltaPhiEleClusterTrackAtCalo', 'deltaPhiSuperClusterTrackAtVtx', 'deltaPhiSeedClusterTrackAtCalo',
+            'mvaInput_earlyBrem', 'mvaInput_lateBrem', 'mvaInput_sigmaEtaEta', 'mvaInput_hadEnergy', 'mvaInput_deltaEta',
+            'gsfTrack_normalizedChi2', 'gsfTrack_numberOfValidHits', 'rel_gsfTrack_pt', 'gsfTrack_pt_sig',
+            'has_closestCtfTrack', 'closestCtfTrack_normalizedChi2', 'closestCtfTrack_numberOfValidHits'
+          ]
