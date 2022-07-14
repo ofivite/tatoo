@@ -94,6 +94,32 @@ def preprocess_array(a):
     a['ele', 'closestCtfTrack_normalizedChi2'] = ak.where(ele_has_closestCtfTrack, a['ele', 'closestCtfTrack_normalizedChi2'], 0)
     a['ele', 'closestCtfTrack_numberOfValidHits'] = ak.where(ele_has_closestCtfTrack, a['ele', 'closestCtfTrack_numberOfValidHits'], 0)
 
+
+    # ------- Muons ------- #
+
+    # shift delta phi into [-pi, pi] range 
+    dphi_array = (a['muon', 'phi'] - a['tau_phi'])
+    dphi_array = np.where(dphi_array <= np.pi, dphi_array, dphi_array - 2*np.pi)
+    dphi_array = np.where(dphi_array >= -np.pi, dphi_array, dphi_array + 2*np.pi)
+
+    a['muon', 'dphi'] = dphi_array
+    a['muon', 'deta'] = a['muon', 'eta'] - a['tau_eta']
+    a['muon', 'rel_pt'] = a['muon', 'pt'] / a['tau_pt']
+    a['muon', 'r'] = np.sqrt(np.square(a['muon', 'deta']) + np.square(a['muon', 'dphi']))
+    a['muon', 'theta'] = np.arctan2(a['muon', 'dphi'], a['muon', 'deta']) # dphi -> y, deta -> x
+    a['muon', 'particle_type'] = 8 # assuming PF candidate types are [0..6]
+
+    a['muon', 'dxy_sig'] =  np.abs(a['muon', 'dxy'])/a['muon', 'dxy_error'] 
+
+    muon_normalizedChi2_valid = a['muon', 'normalizedChi2'] >= 0
+    a['muon', 'normalizedChi2_valid'] = muon_normalizedChi2_valid
+    a['muon', 'normalizedChi2'] = ak.where(muon_normalizedChi2_valid, a['muon', 'normalizedChi2'], 0)
+    a['muon', 'numberOfValidHits'] = ak.where(muon_normalizedChi2_valid, a['muon', 'numberOfValidHits'], 0)
+    
+    muon_pfEcalEnergy_valid = a['muon', 'pfEcalEnergy'] >= 0
+    a['muon', 'pfEcalEnergy_valid'] = muon_pfEcalEnergy_valid
+    a['muon', 'rel_pfEcalEnergy'] = ak.where(muon_pfEcalEnergy_valid, a['muon', 'pfEcalEnergy']/a['muon', 'pt'], 0)
+
     # preprocess NaNs
     a = ak.nan_to_num(a, nan=0., posinf=0., neginf=0.)
 

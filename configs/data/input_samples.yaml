@@ -19,7 +19,16 @@ input_branches: ['pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
                   'ele_mvaInput_earlyBrem', 'ele_mvaInput_lateBrem', 'ele_mvaInput_sigmaEtaEta', 'ele_mvaInput_hadEnergy', 'ele_mvaInput_deltaEta',
                   'ele_gsfTrack_normalizedChi2', 'ele_gsfTrack_numberOfValidHits',
                   'ele_gsfTrack_pt', 'ele_gsfTrack_pt_error', 
-                  'ele_closestCtfTrack_normalizedChi2', 'ele_closestCtfTrack_numberOfValidHits'
+                  'ele_closestCtfTrack_normalizedChi2', 'ele_closestCtfTrack_numberOfValidHits',
+                  'muon_pt', 'muon_eta', 'muon_phi', 'muon_dxy', 'muon_dxy_error', 'muon_pfEcalEnergy', 
+                  'muon_normalizedChi2', 'muon_numberOfValidHits', 'muon_segmentCompatibility', 'muon_caloCompatibility',
+                  'muon_n_matches_DT_1', 'muon_n_matches_DT_2', 'muon_n_matches_DT_3', 'muon_n_matches_DT_4',
+                  'muon_n_matches_CSC_1', 'muon_n_matches_CSC_2', 'muon_n_matches_CSC_3', 'muon_n_matches_CSC_4',
+                  'muon_n_matches_RPC_1', 'muon_n_matches_RPC_2', 'muon_n_matches_RPC_3', 'muon_n_matches_RPC_4',  
+                  'muon_n_hits_DT_1', 'muon_n_hits_DT_2', 'muon_n_hits_DT_3', 'muon_n_hits_DT_4', 
+                  'muon_n_hits_CSC_1', 'muon_n_hits_CSC_2', 'muon_n_hits_CSC_3', 'muon_n_hits_CSC_4', 
+                  'muon_n_hits_RPC_1', 'muon_n_hits_RPC_2', 'muon_n_hits_RPC_3', 'muon_n_hits_RPC_4'
+
                 ]
 
 input_data: # "sample_alias": [list of strings with tau types to be selected]

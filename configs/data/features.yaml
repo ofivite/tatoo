@@ -4,7 +4,7 @@ feature_names:
             'charge', 'pvAssociationQuality', 'puppiWeight', 'lostInnerHits', 'nPixelHits', 'hasTrackDetails',
             'vertex_dx', 'vertex_dy', 'vertex_dz', 'vertex_dx_tauFL', 'vertex_dy_tauFL', 'vertex_dz_tauFL', 
             'dxy', 'dxy_sig', 'dz', 'dz_sig', 'track_ndof', 'chi2_ndof'
-          ]
+  ]
   ele:    [
             'r', 'theta', 'rel_pt', 'particle_type', 
             'cc_valid', 'cc_ele_rel_energy', 'cc_gamma_rel_energy', 'cc_n_gamma', 
@@ -16,4 +16,15 @@ feature_names:
             'mvaInput_earlyBrem', 'mvaInput_lateBrem', 'mvaInput_sigmaEtaEta', 'mvaInput_hadEnergy', 'mvaInput_deltaEta',
             'gsfTrack_normalizedChi2', 'gsfTrack_numberOfValidHits', 'rel_gsfTrack_pt', 'gsfTrack_pt_sig',
             'has_closestCtfTrack', 'closestCtfTrack_normalizedChi2', 'closestCtfTrack_numberOfValidHits'
-          ]
+  ]
+  muon:   [
+            'r', 'theta', 'rel_pt', 'particle_type', 
+            'dxy', 'dxy_sig', 'normalizedChi2_valid', 'normalizedChi2', 'numberOfValidHits',
+            'segmentCompatibility', 'caloCompatibility', 'pfEcalEnergy_valid', 'rel_pfEcalEnergy',
+            'n_matches_DT_1', 'n_matches_DT_2', 'n_matches_DT_3', 'n_matches_DT_4',
+            'n_matches_CSC_1', 'n_matches_CSC_2', 'n_matches_CSC_3', 'n_matches_CSC_4',
+            'n_matches_RPC_1', 'n_matches_RPC_2', 'n_matches_RPC_3', 'n_matches_RPC_4',  
+            'n_hits_DT_1', 'n_hits_DT_2', 'n_hits_DT_3', 'n_hits_DT_4', 
+            'n_hits_CSC_1', 'n_hits_CSC_2', 'n_hits_CSC_3', 'n_hits_CSC_4', 
+            'n_hits_RPC_1', 'n_hits_RPC_2', 'n_hits_RPC_3', 'n_hits_RPC_4'
+  ]
