@@ -4,6 +4,7 @@ from collections import defaultdict
 from hydra.utils import to_absolute_path
 
 import tensorflow as tf
+from tensorflow.python.ops import math_ops
 import numpy as np
 
 def compose_datasets(datasets, tf_dataset_cfg):
