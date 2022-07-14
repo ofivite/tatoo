@@ -37,7 +37,7 @@ def compose_datasets(datasets, tf_dataset_cfg):
     if tf_dataset_cfg["cache"]:
         train_data = train_data.cache()
 
-    if tf_dataset_cfg['smart_batching'] is None:
+    if tf_dataset_cfg['smart_batching_step'] is None:
         train_data = train_data.batch(tf_dataset_cfg["train_batch_size"])
         val_data = val_data.batch(tf_dataset_cfg["val_batch_size"])
     else:
@@ -59,24 +59,23 @@ def compose_datasets(datasets, tf_dataset_cfg):
 
         element_length_func = lambda elem, y: tf.shape(elem)[0]
 
-        batch_size = tf_dataset_cfg['train_batch_size']
         bucket_boundaries = np.arange(
             tf_dataset_cfg['sequence_length_dist_start'],
             tf_dataset_cfg['sequence_length_dist_end'],
-            tf_dataset_cfg['smart_batching']
+            tf_dataset_cfg['smart_batching_step']
         )
 
         train_data = train_data.group_by_window(
             key_func=element_to_bucket_id,
-            reduce_func=reduce_func,
-            window_size=batch_size
-        ).shuffle(tf_dataset_cfg['shuffle_buffer_size'])
+            reduce_func=lambda unused_arg, dataset: reduce_func(unused_arg, dataset, tf_dataset_cfg['train_batch_size']),
+            window_size=tf_dataset_cfg['train_batch_size']
+        ).shuffle(tf_dataset_cfg['shuffle_smart_buffer_size'])
 
         val_data = val_data.group_by_window(
             key_func=element_to_bucket_id,
-            reduce_func=reduce_func,
-            window_size=batch_size
-        ).shuffle(tf_dataset_cfg['shuffle_buffer_size'])
+            reduce_func=lambda unused_arg, dataset: reduce_func(unused_arg, dataset, tf_dataset_cfg['val_batch_size']),
+            window_size=tf_dataset_cfg['val_batch_size']
+        ).shuffle(tf_dataset_cfg['shuffle_smart_buffer_size'])
 
 
     train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
