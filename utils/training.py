@@ -4,7 +4,7 @@ from collections import defaultdict
 from hydra.utils import to_absolute_path
 
 import tensorflow as tf
-from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import math_ops, array_ops
 import numpy as np
 
 def compose_datasets(datasets, tf_dataset_cfg):
@@ -57,7 +57,8 @@ def compose_datasets(datasets, tf_dataset_cfg):
         def reduce_func(unused_arg, dataset, batch_size):
             return dataset.batch(batch_size)
 
-        element_length_func = lambda elem, y: tf.shape(elem)[0]
+        # will do smart batching based only on the sequence lengths of the first element (assume it to be PF candidate block)
+        element_length_func = lambda *elements: tf.shape(elements[0])[0]
 
         bucket_boundaries = np.arange(
             tf_dataset_cfg['sequence_length_dist_start'],
