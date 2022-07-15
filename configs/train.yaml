@@ -23,7 +23,11 @@ datasets:
 
 # TF dataset formation
 tf_dataset_cfg:
+  smart_batching_step: ???
+  sequence_length_dist_start: 0
+  sequence_length_dist_end: 300 
   shuffle_buffer_size: 40000 # null to not shuffle
+  shuffle_smart_buffer_size: 40000
   cache: null # null to not cache the training dataset
   train_batch_size: ???
   val_batch_size: ???

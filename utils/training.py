@@ -4,6 +4,8 @@ from collections import defaultdict
 from hydra.utils import to_absolute_path
 
 import tensorflow as tf
+from tensorflow.python.ops import math_ops
+import numpy as np
 
 def compose_datasets(datasets, tf_dataset_cfg):
     train_probas = [] # to store sampling probabilites on training datasets
@@ -34,8 +36,48 @@ def compose_datasets(datasets, tf_dataset_cfg):
         train_data = train_data.shuffle(tf_dataset_cfg["shuffle_buffer_size"])
     if tf_dataset_cfg["cache"]:
         train_data = train_data.cache()
-    train_data = train_data.batch(tf_dataset_cfg["train_batch_size"])
-    val_data = val_data.batch(tf_dataset_cfg["val_batch_size"])
+
+    if tf_dataset_cfg['smart_batching_step'] is None:
+        train_data = train_data.batch(tf_dataset_cfg["train_batch_size"])
+        val_data = val_data.batch(tf_dataset_cfg["val_batch_size"])
+    else:
+        def element_to_bucket_id(*args):
+            seq_length = element_length_func(*args)
+
+            boundaries = list(bucket_boundaries)
+            buckets_min = [np.iinfo(np.int32).min] + boundaries
+            buckets_max = boundaries + [np.iinfo(np.int32).max]
+            conditions_c = math_ops.logical_and(
+            math_ops.less_equal(buckets_min, seq_length),
+            math_ops.less(seq_length, buckets_max))
+            bucket_id = math_ops.reduce_min(array_ops.where(conditions_c))
+
+            return bucket_id
+
+        def reduce_func(unused_arg, dataset, batch_size):
+            return dataset.batch(batch_size)
+
+        element_length_func = lambda elem, y: tf.shape(elem)[0]
+
+        bucket_boundaries = np.arange(
+            tf_dataset_cfg['sequence_length_dist_start'],
+            tf_dataset_cfg['sequence_length_dist_end'],
+            tf_dataset_cfg['smart_batching_step']
+        )
+
+        train_data = train_data.group_by_window(
+            key_func=element_to_bucket_id,
+            reduce_func=lambda unused_arg, dataset: reduce_func(unused_arg, dataset, tf_dataset_cfg['train_batch_size']),
+            window_size=tf_dataset_cfg['train_batch_size']
+        ).shuffle(tf_dataset_cfg['shuffle_smart_buffer_size'])
+
+        val_data = val_data.group_by_window(
+            key_func=element_to_bucket_id,
+            reduce_func=lambda unused_arg, dataset: reduce_func(unused_arg, dataset, tf_dataset_cfg['val_batch_size']),
+            window_size=tf_dataset_cfg['val_batch_size']
+        ).shuffle(tf_dataset_cfg['shuffle_smart_buffer_size'])
+
+
     train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
     val_data = val_data.prefetch(tf.data.experimental.AUTOTUNE)
 
