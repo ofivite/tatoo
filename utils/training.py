@@ -54,7 +54,7 @@ def compose_datasets(datasets, tf_dataset_cfg):
 
             return bucket_id
 
-        def reduce_func(unused_arg, dataset):
+        def reduce_func(unused_arg, dataset, batch_size):
             return dataset.batch(batch_size)
 
         element_length_func = lambda elem, y: tf.shape(elem)[0]
