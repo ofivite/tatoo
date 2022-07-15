@@ -2,18 +2,24 @@ from tensorflow.keras.layers import Dense, Embedding
 import tensorflow as tf
 
 class FeatureEmbedding(tf.keras.layers.Layer):
-    def __init__(self, feature_idx_to_select, cat_emb_feature_idx, cat_emb_dim_in, cat_emb_dim_out, hidden_dim, out_dim):
+    def __init__(self, feature_idx_to_select, shared_cat_feature_idx, shared_cat_dim_in, shared_cat_dim_out, hidden_dim, out_dim):
         super().__init__()
-        self.cat_emb_feature_idx = cat_emb_feature_idx
+        assert len(feature_idx_to_select) == len(shared_cat_feature_idx)
+        self.n_particle_types = len(feature_idx_to_select)
+        self.shared_cat_feature_idx = shared_cat_feature_idx
         self.feature_idx_to_select = feature_idx_to_select # should not include categorical features 
-        self.dense_hidden = Dense(hidden_dim, activation=tf.nn.relu)
-        self.dense_out = Dense(out_dim, activation=tf.nn.relu) 
-        self.embedding = Embedding(cat_emb_dim_in, cat_emb_dim_out)
+        
+        self.dense_hidden = [Dense(hidden_dim, activation=tf.nn.relu) for _ in range(self.n_particle_types)]
+        self.dense_out = [Dense(out_dim, activation=tf.nn.relu) for _ in range(self.n_particle_types)]
+        self.shared_embedding = Embedding(shared_cat_dim_in, shared_cat_dim_out)
         
     def call(self, inputs):
-        x_emb = self.embedding(inputs[..., self.cat_emb_feature_idx])
-        x_inputs = tf.gather(inputs, indices=self.feature_idx_to_select, axis=-1)
-        x_inputs = tf.concat([x_inputs, x_emb], axis=-1)
-        x_out = self.dense_out(self.dense_hidden(x_inputs))
-        
-        return x_out
+        outputs = []
+        for i, x in enumerate(inputs):
+            x_emb = self.shared_embedding(x[..., self.shared_cat_feature_idx[i]])
+            x_inputs = tf.gather(x, indices=self.feature_idx_to_select[i], axis=-1)
+            x_inputs = tf.concat([x_inputs, x_emb], axis=-1)
+            x_output = self.dense_out[i](self.dense_hidden[i](x_inputs))
+            outputs.append(x_output)
+        outputs = tf.concat(outputs, axis=1) # concat across constituent dimension
+        return outputs

@@ -91,9 +91,9 @@ def compose_datasets(datasets, tf_dataset_cfg):
             data_cfg = yaml.safe_load(f)
         class_idx[dataset_type] = [data_cfg["label_columns"].index(f'label_{c}') for c in tf_dataset_cfg["classes"]] # fetch label indices which correspond to specified classes
     
-    train_data = train_data.map(lambda X,y: (X, tf.gather(y, indices=class_idx['train'], axis=-1)),
+    train_data = train_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx['train'], axis=-1)),
                                 num_parallel_calls=tf.data.AUTOTUNE) 
-    val_data = val_data.map(lambda X,y: (X, tf.gather(y, indices=class_idx['val'], axis=-1)),  
+    val_data = val_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx['val'], axis=-1)),  
                                 num_parallel_calls=tf.data.AUTOTUNE) 
 
     return train_data, val_data

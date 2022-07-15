@@ -126,13 +126,15 @@ class Encoder(tf.keras.layers.Layer):
 
         if isinstance(embedding_kwargs, DictConfig):
             embedding_kwargs = OmegaConf.to_object(embedding_kwargs)
-        # extract index of cat. features
-        cat_emb_feature = embedding_kwargs.pop('cat_emb_feature')
-        embedding_kwargs['cat_emb_feature_idx'] = feature_name_to_idx[cat_emb_feature]
-        
-        # drop specified features and extract their indices 
+        shared_cat_feature = embedding_kwargs.pop('shared_cat_feature')
         features_to_drop = embedding_kwargs.pop('features_to_drop')
-        embedding_kwargs['feature_idx_to_select'] = [i for f, i in feature_name_to_idx.items() if f not in features_to_drop and f != cat_emb_feature]
+        embedding_kwargs['shared_cat_feature_idx'], embedding_kwargs['feature_idx_to_select'] = [], []
+
+        # extract indices of feature to embedded and features to be used in the training 
+        for particle_type, names_to_idx in feature_name_to_idx.items():
+            embedding_kwargs['shared_cat_feature_idx'].append(names_to_idx[shared_cat_feature])
+            embedding_kwargs['feature_idx_to_select'].append([i for f, i in names_to_idx.items() 
+                                                                if f not in features_to_drop[particle_type] and f != shared_cat_feature])
 
         self.feature_embedding = FeatureEmbedding(**embedding_kwargs)
 
@@ -156,18 +158,23 @@ class Transformer(tf.keras.Model):
 
     def call(self, inputs, training):
         # pad ragged array to max constituent number and return normal tensor
-        x = inputs.to_tensor()
+        
+        mask = []
+        padded_inputs = []
+        for l in inputs:
+            l = l.to_tensor()
+            padded_inputs.append(l)
+            mask.append(self.create_padding_mask(l))
+        mask = tf.concat(mask, axis=1) 
 
-        # create mask for padded tokens
-        mask = self.create_padding_mask(x)
-        enc_padding_mask = tf.math.logical_and(mask[:, tf.newaxis, :], mask[:, :, tf.newaxis]) # [batch, seq, seq], symmetric block-diagonal
+        padding_mask = tf.math.logical_and(mask[:, tf.newaxis, :], mask[:, :, tf.newaxis]) # [batch, seq, seq], symmetric block-diagonal
         if self.use_masked_mha: # invert mask, 0 -> constituent, 1 -> padding
-            enc_padding_mask = ~enc_padding_mask
-        enc_padding_mask = tf.cast(enc_padding_mask, tf.float32)
-        enc_padding_mask = enc_padding_mask[:, tf.newaxis, :, :] # additional axis for head dimension 
+            padding_mask = ~padding_mask
+        padding_mask = tf.cast(padding_mask, tf.float32)
+        padding_mask = padding_mask[:, tf.newaxis, :, :] # additional axis for head dimension 
 
         # propagate through encoder
-        enc_output = self.encoder(x, enc_padding_mask, training)
+        enc_output = self.encoder(padded_inputs, padding_mask, training)
 
          # mask padded tokens before pooling 
         mask = tf.cast(mask, tf.float32)

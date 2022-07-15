@@ -43,7 +43,9 @@ def main(cfg: DictConfig) -> None:
         train_data, val_data = compose_datasets(cfg["datasets"], cfg["tf_dataset_cfg"])
 
         # define model
-        feature_name_to_idx = {name: cfg["feature_names"].index(name) for name in cfg["feature_names"]}
+        feature_name_to_idx = {}
+        for particle_type, names in cfg["feature_names"].items():
+            feature_name_to_idx[particle_type] = {name: i for i, name in enumerate(names)}
         if cfg["model"]["type"] == 'taco_net':
             model = TacoNet(feature_name_to_idx, cfg["model"]["kwargs"]["encoder"], cfg["model"]["kwargs"]["decoder"])
         elif cfg["model"]["type"] == 'transformer':

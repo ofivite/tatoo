@@ -1,6 +1,9 @@
-cat_emb_feature: 'particle_type'
-features_to_drop: []
-cat_emb_dim_in: 7
-cat_emb_dim_out: 2
+shared_cat_feature: 'particle_type'
+shared_cat_dim_in: 9
+shared_cat_dim_out: 2
+features_to_drop:
+  pfCand: []
+  ele: []
+  muon: []
 hidden_dim: 256
 out_dim: 64
