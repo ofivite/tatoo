@@ -132,6 +132,7 @@ class Encoder(tf.keras.layers.Layer):
 
         # extract indices of feature to embedded and features to be used in the training 
         for particle_type, names_to_idx in feature_name_to_idx.items():
+            if features_to_drop[particle_type] == "all": continue
             embedding_kwargs['shared_cat_feature_idx'].append(names_to_idx[shared_cat_feature])
             embedding_kwargs['feature_idx_to_select'].append([i for f, i in names_to_idx.items() 
                                                                 if f not in features_to_drop[particle_type] and f != shared_cat_feature])
@@ -150,6 +151,8 @@ class Transformer(tf.keras.Model):
     def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs):
         super().__init__()
         self.use_masked_mha = encoder_kwargs["use_masked_mha"]
+        self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_kwargs['embedding_kwargs']['features_to_drop'].values())
+                                                     if feature_names=='all']
         self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
         self.dense_1 = Dense(decoder_kwargs['dim_ff_outputs'], activation='relu')
         self.dense_2 = Dense(decoder_kwargs['dim_ff_outputs']//2, activation='relu')
@@ -157,11 +160,12 @@ class Transformer(tf.keras.Model):
         self.output_pred = Softmax()
 
     def call(self, inputs, training):
-        # pad ragged array to max constituent number and return normal tensor
-        
+
+        # pad input tensors per particle type and create corresponding mask  
         mask = []
         padded_inputs = []
-        for l in inputs:
+        for l_id, l in enumerate(inputs):
+            if l_id in self.particle_blocks_to_drop: continue
             l = l.to_tensor()
             padded_inputs.append(l)
             mask.append(self.create_padding_mask(l))

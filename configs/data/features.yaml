@@ -1,4 +1,4 @@
-feature_names: 
+feature_names: # particle types must be ordered as they are yielded in TF dataset
   pfCand: [
             'r', 'theta', 'rel_pt', 'particle_type', 
             'charge', 'pvAssociationQuality', 'puppiWeight', 'lostInnerHits', 'nPixelHits', 'hasTrackDetails',

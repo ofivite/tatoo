@@ -1,8 +1,8 @@
 shared_cat_feature: 'particle_type'
-shared_cat_dim_in: 9
+shared_cat_dim_in: 9 # !!! reduce it accordingly in case of dropping particle blocks
 shared_cat_dim_out: 2
-features_to_drop:
-  pfCand: []
+features_to_drop: # particle types must be ordered as they are yielded in TF dataset
+  pfCand: [] # "all" to drop the particle block altogether
   ele: []
   muon: []
 hidden_dim: 256
