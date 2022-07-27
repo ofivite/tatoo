@@ -54,7 +54,7 @@ def main(cfg: DictConfig) -> None:
 
         print(f'\n-> Predicting {file_name}')
         predictions, labels, add_columns = [], [], []
-        for (X, y, add_data) in dataset:
+        for (*X, y, add_data) in dataset:
             predictions.append(model.predict(X))
             labels.append(y)
             add_columns.append(add_data)
