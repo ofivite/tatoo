@@ -10,27 +10,27 @@ experiment_name: ???
 
 # datasets
 vs_type: ???
-dataset_name: SM_v2 # to log to mlflow for bookkeeping
+dataset_name: SM_v3 # to log to mlflow for bookkeeping
 datasets: 
   train:
-    SM_v2: # will take from "train" subfolder of this dataset
+    SM_v3: # will take all files from "train" subfolder of this dataset
       path_to_dataset: ./datasets
       tau_types: ['tau', '${vs_type}']
   val:
-    SM_v2: # will take from "val" subfolder of this dataset
+    SM_v3: # will take all files from "val" subfolder of this dataset
       path_to_dataset: ./datasets
       tau_types: ['tau', '${vs_type}']  
 
 # TF dataset formation
 tf_dataset_cfg:
-  smart_batching_step: ???
+  smart_batching_step: 10
   sequence_length_dist_start: 0
   sequence_length_dist_end: 300 
   shuffle_buffer_size: 40000 # null to not shuffle
-  shuffle_smart_buffer_size: 40000
+  shuffle_smart_buffer_size: 1000
   cache: null # null to not cache the training dataset
-  train_batch_size: ???
-  val_batch_size: ???
+  train_batch_size: 128
+  val_batch_size: 128
   classes: ["tau", "${vs_type}"] # will pick only those labels (in this order)
 
 # training
