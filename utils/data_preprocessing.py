@@ -8,7 +8,7 @@ def load_from_file(file_name, tree_name, input_branches):
     print(f'      - {file_name}')
     
     # open ROOT file and retireve awkward arrays
-    with uproot.open(to_absolute_path(f'{file_name}.root')) as f:
+    with uproot.open(to_absolute_path(file_name)) as f:
         a = f[tree_name].arrays(input_branches, how='zip')
 
     return a

@@ -1,6 +1,7 @@
 import os
 import time
 import shutil
+from glob import glob
 from collections import defaultdict
 import hydra
 from hydra.utils import to_absolute_path
@@ -26,9 +27,11 @@ def main(cfg: DictConfig) -> None:
     for dataset_type in input_data.keys():
         dataset_cfg = input_data[dataset_type]
         files = dataset_cfg.pop('files')
+        if len(files)==1 and "*" in (file_name_regex:=list(files.keys())[0]):
+            files = {f: files[file_name_regex] for f in glob(to_absolute_path(file_name_regex))}
+
         print(f'\n-> Processing input files ({dataset_type})')
         n_samples = defaultdict(int)
-
         for file_name, tau_types in files.items():
             time_0 = time.time()
 
