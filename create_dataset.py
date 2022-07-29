@@ -104,7 +104,7 @@ def main(cfg: DictConfig) -> None:
                 print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
 
                 # remove existing datasets
-                path_to_dataset = to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{dataset_type}/{os.path.basename(file_name)}/{tau_type}')
+                path_to_dataset = to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{dataset_type}/{os.path.splitext(os.path.basename(file_name))[0]}/{tau_type}')
                 if os.path.exists(path_to_dataset):
                     shutil.rmtree(path_to_dataset)
                 else:
