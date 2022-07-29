@@ -6,7 +6,7 @@ from collections import defaultdict
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf, open_dict
-from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_ragged
+from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_tf
 from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
 
 import tensorflow as tf
@@ -85,7 +85,7 @@ def main(cfg: DictConfig) -> None:
 
                 # add awkward arrays converted to TF ragged arrays
                 for particle_type, feature_names in cfg['feature_names'].items(): # do this separately for each particle collection
-                    X = awkward_to_ragged(a_selected, particle_type, feature_names) # will keep only feats from feature_names
+                    X = awkward_to_tf(a_selected, particle_type, feature_names) # will keep only feats from feature_names
                     data += (X,)
                 
                 # all labels to final dataset
