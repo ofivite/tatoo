@@ -10,14 +10,14 @@ experiment_name: ???
 
 # datasets
 vs_type: ???
-dataset_name: SM_v3 # to log to mlflow for bookkeeping
+dataset_name: SM_v4 # to log to mlflow for bookkeeping
 datasets: 
   train:
-    SM_v3: # will take all files from "train" subfolder of this dataset
+    SM_v4: # will take all files from "train" subfolder of this dataset
       path_to_dataset: ./datasets
       tau_types: ['tau', '${vs_type}']
   val:
-    SM_v3: # will take all files from "val" subfolder of this dataset
+    SM_v4: # will take all files from "val" subfolder of this dataset
       path_to_dataset: ./datasets
       tau_types: ['tau', '${vs_type}']  
 

@@ -95,6 +95,9 @@ def main(cfg: DictConfig) -> None:
         params_embedding = {f'emb_{p}': v for p,v in params_embedding.items()}
         mlflow.log_param('model_name', cfg["model"]["name"])
         mlflow.log_params(params_encoder)
+        for ptype, feature_list in params_embedding['emb_features_to_drop'].items():
+            if len(feature_list)>5:
+                params_embedding['emb_features_to_drop'][ptype] = ['too_long_to_log']
         mlflow.log_params(params_embedding)
         mlflow.log_params(cfg["model"]["kwargs"]["decoder"])
         mlflow.log_params({f'model_node_{i}': c for i,c in enumerate(cfg["tf_dataset_cfg"]["classes"])})
