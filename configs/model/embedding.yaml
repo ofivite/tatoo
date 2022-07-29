@@ -2,9 +2,7 @@ shared_cat_feature: 'particle_type'
 shared_cat_dim_in: 10 # !!! reduce it accordingly in case of dropping particle blocks
 shared_cat_dim_out: 2
 features_to_drop: # particle types must be ordered as they are yielded in TF dataset
-  global: [
-            'tau_hasSecondaryVertex', 'tau_sv_minus_pv_x', 'tau_sv_minus_pv_y', 'tau_sv_minus_pv_z',
-          ] # "all" to drop the particle block altogether
+  # list / "all" to drop the particle block altogether
   pfCand: [
             'fromPV', 'tauLeadChargedHadrCand',
             'hcalFraction', 'rawCaloFraction', 'rawHcalFraction', 
@@ -22,5 +20,8 @@ features_to_drop: # particle types must be ordered as they are yielded in TF dat
             'full5x5_e2x5Left', 'full5x5_e2x5Right', 'full5x5_e2x5Bottom', 'full5x5_e2x5Top'
         ]
   muon: []
+  global: [
+          'tau_hasSecondaryVertex', 'tau_sv_minus_pv_x', 'tau_sv_minus_pv_y', 'tau_sv_minus_pv_z',
+          ]
 hidden_dim: 256
 out_dim: 64

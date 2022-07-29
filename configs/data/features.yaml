@@ -1,20 +1,4 @@
 feature_names: # particle types must be ordered as they are yielded in TF dataset
-  global: [
-                'rho', 'tau_pt', 'tau_eta', 'tau_mass', 'tau_E_over_pt', 'tau_charge', 'tau_n_charged_prongs', 'tau_n_neutral_prongs',
-                'tau_chargedIsoPtSum', 'tau_chargedIsoPtSumdR03_over_dR05','tau_footprintCorrection', 'tau_neutralIsoPtSum',
-                'tau_neutralIsoPtSumWeight_over_neutralIsoPtSum', 'tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum',
-                'tau_neutralIsoPtSumdR03_over_dR05', 'tau_photonPtSumOutsideSignalCone', 'tau_puCorrPtSum',
-                'tau_hasSecondaryVertex', 'tau_sv_minus_pv_x', 'tau_sv_minus_pv_y', 'tau_sv_minus_pv_z',
-                'tau_dxy_valid', 'tau_dxy', 'tau_dxy_sig',
-                'tau_ip3d_valid', 'tau_ip3d', 'tau_ip3d_sig',
-                'tau_dz_sig_valid', 'tau_dz', 'tau_dz_sig',
-                'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z', 'tau_flightLength_sig',
-                'tau_pt_weighted_deta_strip', 'tau_pt_weighted_dphi_strip', 'tau_pt_weighted_dr_signal', 'tau_pt_weighted_dr_iso',
-                'tau_e_ratio_valid', 'tau_e_ratio',
-                'tau_gj_angle_diff_valid', 'tau_gj_angle_diff', 
-                'tau_n_photons', 'tau_emFraction', 'tau_inside_ecal_crack',
-                'tau_leadingTrackNormChi2', 'tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta'
-  ]
   pfCand: [
             'r', 'theta', 'rel_pt', 'particle_type', 'charge', 
             'pvAssociationQuality', 'fromPV', 'tauLeadChargedHadrCand',
@@ -56,4 +40,20 @@ feature_names: # particle types must be ordered as they are yielded in TF datase
             'n_hits_DT_1', 'n_hits_DT_2', 'n_hits_DT_3', 'n_hits_DT_4', 
             'n_hits_CSC_1', 'n_hits_CSC_2', 'n_hits_CSC_3', 'n_hits_CSC_4', 
             'n_hits_RPC_1', 'n_hits_RPC_2', 'n_hits_RPC_3', 'n_hits_RPC_4'
+  ]
+  global: [
+              'particle_type', 'rho', 'tau_pt', 'tau_eta', 'tau_mass', 'tau_E_over_pt', 'tau_charge', 'tau_n_charged_prongs', 'tau_n_neutral_prongs',
+              'tau_chargedIsoPtSum', 'tau_chargedIsoPtSumdR03_over_dR05','tau_footprintCorrection', 'tau_neutralIsoPtSum',
+              'tau_neutralIsoPtSumWeight_over_neutralIsoPtSum', 'tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum',
+              'tau_neutralIsoPtSumdR03_over_dR05', 'tau_photonPtSumOutsideSignalCone', 'tau_puCorrPtSum',
+              'tau_hasSecondaryVertex', 'tau_sv_minus_pv_x', 'tau_sv_minus_pv_y', 'tau_sv_minus_pv_z',
+              'tau_dxy_valid', 'tau_dxy', 'tau_dxy_sig',
+              'tau_ip3d_valid', 'tau_ip3d', 'tau_ip3d_sig',
+              'tau_dz_sig_valid', 'tau_dz', 'tau_dz_sig',
+              'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z', 'tau_flightLength_sig',
+              'tau_pt_weighted_deta_strip', 'tau_pt_weighted_dphi_strip', 'tau_pt_weighted_dr_signal', 'tau_pt_weighted_dr_iso',
+              'tau_e_ratio_valid', 'tau_e_ratio',
+              'tau_gj_angle_diff_valid', 'tau_gj_angle_diff', 
+              'tau_n_photons', 'tau_emFraction', 'tau_inside_ecal_crack',
+              'tau_leadingTrackNormChi2', 'tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta'
   ]

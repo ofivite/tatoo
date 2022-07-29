@@ -79,6 +79,7 @@ def preprocess_array(a):
     a['tau_gj_angle_diff'] = ak.where(tau_gj_angle_diff_valid, a['tau_gj_angle_diff'], -1)
 
     a['tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta'] = a['tau_leadChargedCand_etaAtEcalEntrance'] - a['tau_eta']
+    a['particle_type'] = 9 # assign unique particle type to a "global" token 
 
     # ------- PF candidates ------- #
 
