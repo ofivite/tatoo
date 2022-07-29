@@ -153,6 +153,7 @@ class Transformer(tf.keras.Model):
         self.use_masked_mha = encoder_kwargs["use_masked_mha"]
         self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_kwargs['embedding_kwargs']['features_to_drop'].values())
                                                      if feature_names=='all']
+        self.global_block_id = list(feature_name_to_idx.keys()).index('global')
         self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
         self.dense_1 = Dense(decoder_kwargs['dim_ff_outputs'], activation='relu')
         self.dense_2 = Dense(decoder_kwargs['dim_ff_outputs']//2, activation='relu')
@@ -166,7 +167,11 @@ class Transformer(tf.keras.Model):
         padded_inputs = []
         for l_id, l in enumerate(inputs):
             if l_id in self.particle_blocks_to_drop: continue
-            l = l.to_tensor()
+            if l_id==self.global_block_id:
+                l = tf.cast(l, tf.float32) # seems to be stored as float64, so cast to float32
+                l = l[:, tf.newaxis, :] # add dummy constituents axis, no padding needed
+            else:
+                l = l.to_tensor()
             padded_inputs.append(l)
             mask.append(self.create_padding_mask(l))
         mask = tf.concat(mask, axis=1) 

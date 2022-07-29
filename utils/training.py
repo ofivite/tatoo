@@ -57,7 +57,8 @@ def compose_datasets(datasets, tf_dataset_cfg):
         def reduce_func(unused_arg, dataset, batch_size):
             return dataset.batch(batch_size)
 
-        # will do smart batching based only on the sequence lengths of the first element (assume it to be PF candidate block)
+        # will do smart batching based only on the sequence lengths of the **first** element (assume it to be PF candidate block)
+        # NB: careful when dropping whole blocks in `embedding.yaml` -> change smart batching id here accordingly
         element_length_func = lambda *elements: tf.shape(elements[0])[0]
 
         bucket_boundaries = np.arange(
@@ -92,6 +93,7 @@ def compose_datasets(datasets, tf_dataset_cfg):
             data_cfg = yaml.safe_load(f)
         class_idx[dataset_type] = [data_cfg["label_columns"].index(f'label_{c}') for c in tf_dataset_cfg["classes"]] # fetch label indices which correspond to specified classes
     
+    # below assume that labels tensor is yield last
     train_data = train_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx['train'], axis=-1)),
                                 num_parallel_calls=tf.data.AUTOTUNE) 
     val_data = val_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx['val'], axis=-1)),  
