@@ -1,0 +1,19 @@
+defaults:
+  - .@kwargs.encoder.embedding_kwargs: embedding
+  - _self_
+
+type: particle_net
+name: particle_net_test_vs_${vs_type}
+kwargs:
+  encoder:
+    conv_params: [
+      [16, [64, 64, 64]],
+      [16, [128, 128, 128]],
+      [16, [256, 256, 256]]
+    ]
+    dense_params: [256, 256]
+    conv_pooling: 'average'
+    dropout_rate: 0.1
+    seq_cutoff_len: 125
+  decoder:
+    output_classes: 2

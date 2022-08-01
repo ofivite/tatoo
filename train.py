@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from models.taco import TacoNet
 from models.transformer import Transformer
+from models.particle_net import ParticleNet
 from utils.training import compose_datasets
 
 import mlflow
@@ -50,6 +51,8 @@ def main(cfg: DictConfig) -> None:
             model = TacoNet(feature_name_to_idx, cfg["model"]["kwargs"]["encoder"], cfg["model"]["kwargs"]["decoder"])
         elif cfg["model"]["type"] == 'transformer':
             model = Transformer(feature_name_to_idx, cfg["model"]["kwargs"]["encoder"], cfg["model"]["kwargs"]["decoder"])
+        elif cfg['model']['type'] == 'particle_net':
+            model = ParticleNet(cfg['model']['kwargs']['encoder'], cfg['model']['kwargs']['decoder'])
         else:
             raise RuntimeError('Failed to infer model type')
         X_, _ = next(iter(train_data))
@@ -80,6 +83,8 @@ def main(cfg: DictConfig) -> None:
             print(model.wave_encoder.summary())
             print(model.wave_decoder.summary())
         elif cfg["model"]["type"] == 'transformer':
+            print(model.summary())
+        elif cfg['model']['type'] == 'particle_net':
             print(model.summary())
 
         # log data params
