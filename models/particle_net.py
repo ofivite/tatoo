@@ -1,17 +1,20 @@
+from tkinter import W
 from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Conv2D, Activation
 
 
 class ParticleNet(tf.keras.Model):
-    def __init__(self, encoder_cfg, decoder_cfg):
+    def __init__(self, feature_name_to_idx, encoder_cfg, decoder_cfg):
         super(ParticleNet, self).__init__()
 
-        self.num_classes = decoder_cfg['output_classes']
+        self.feature_name_to_idx = feature_name_to_idx
+        self.num_classes = decoder_cfg['n_outputs']
         self.conv_params = [(layer_setup[0], tuple(layer_setup[1]),) for layer_setup in encoder_cfg['conv_params']]
         self.conv_pooling = encoder_cfg['conv_pooling']
-        self.fc_params = [(layer_setup, encoder_cfg['dropout_rate'],) for layer_setup in encoder_cfg['dense_params']]
+        self.fc_params = [(layer_setup, decoder_cfg['dropout_rate'],) for layer_setup in decoder_cfg['dense_params']]
         self.num_points = encoder_cfg['seq_cutoff_len']
+        self.masking = encoder_cfg['masking']
 
         # Initialising layers
         self.batch_norm = BatchNormalization()
@@ -23,70 +26,52 @@ class ParticleNet(tf.keras.Model):
                 EdgeConv(self.num_points, K, channels, with_bn=True, activation='relu', pooling=self.conv_pooling, name=f'{self.name}_EdgeConv_{layer_idx}')
             )
 
-        self.dense_layers = []
-        self.dense_dropout = []
         if self.fc_params is not None:
+            self.decoder_layers = tf.keras.Sequential()
+
             for layer_idx, layer_param in enumerate(self.fc_params):
                 units, dropout_rate = layer_param
 
-                self.dense_layers.append(
-                    Dense(units, activation='relu')
-                )
-
+                self.decoder_layers.add(Dense(units, activation='relu'))                
                 if dropout_rate is not None and dropout_rate > 0:
-                    self.dense_dropout.append(
-                        Dropout(dropout_rate)
-                    )
-            
-            self.out = Dense(self.num_classes, activation='softmax')
+                    self.decoder_layers.add(Dropout(dropout_rate))
+
+            self.decoder_layers.add(Dense(self.num_classes, activation='softmax'))
 
     @tf.function
     def call(self, input):
-        masking = True
-
         features = input[0][:,:self.num_points,:].to_tensor() # (batch_size, particles, features), here: (128, 125, 22)
         # print(f'FEATURES - type: {type(features)}, shape: {features.shape}')
 
         # Converting from (r, theta)-space to (eta, phi)-space
-        eta = features[:,:,0] * tf.math.cos(features[:,:,1]) # (128, 125)
-        phi = features[:,:,0] * tf.math.sin(features[:,:,1])
+        eta = features[:,:,self.feature_name_to_idx['r']] * tf.math.cos(features[:,:,self.feature_name_to_idx['theta']]) # (128, 125)
+        phi = features[:,:,self.feature_name_to_idx['r']] * tf.math.sin(features[:,:,self.feature_name_to_idx['theta']])
         eta = eta[:, :, tf.newaxis] # (128, 125, 1)
         phi = phi[:, :, tf.newaxis]
 
         points = tf.concat([eta, phi], -1) # (128, 125, 2)
 
-        if masking:
-            reduced_fts = tf.expand_dims(tf.reduce_sum(features,-1),-1)  # From (128, 125, 22) to (128, 125, 1)
-            mask = tf.cast(tf.not_equal(reduced_fts, 0), dtype='float32')
+        if self.masking:
+            mask = tf.math.reduce_any(tf.math.not_equal(features, 0), axis=-1)
+            mask = tf.cast(mask[:, :, tf.newaxis], dtype='float32')
             coord_shift = tf.multiply(1e9, tf.cast(tf.equal(mask, 0), dtype='float32'))
         
         fts = tf.squeeze(self.batch_norm(tf.expand_dims(features, axis=2)), axis=2)
 
         for layer_idx, layer_param in enumerate(self.conv_params):
-            if masking:
+            if self.masking:
                 pts = tf.add(coord_shift, points) if layer_idx == 0 else tf.add(coord_shift, fts)
             else:
-                pts = points
+                pts = points if layer_idx == 0 else fts
 
             fts = self.edge_conv_layers[layer_idx](pts, fts)
 
-        fts = tf.math.multiply(fts, mask) if masking else fts
+        fts = tf.math.multiply(fts, mask) if self.masking else fts
         pool = tf.reduce_mean(fts, axis=1)  # (N, C)
 
-        x = pool
-        for layer_idx, layer_param in enumerate(self.fc_params):
-            units, drop_rate = layer_param
-            x = self.dense_layers[layer_idx](x)
-            if drop_rate is not None and drop_rate > 0:
-                x = self.dense_dropout[layer_idx](x)
-
-        out = self.out(x)
+        out = self.decoder_layers(pool)
 
         return out  # (N, num_classes)
-
-    def create_padding_mask(self, seq):
-        mask = tf.math.reduce_any(tf.math.not_equal(seq, 0), axis=-1) # [batch, seq], 0 -> padding, 1 -> constituent
-        return mask
 
 
 class EdgeConv(tf.keras.layers.Layer):
@@ -140,8 +125,10 @@ class EdgeConv(tf.keras.layers.Layer):
 
         if self.pooling == 'max':
             fts = tf.reduce_max(x, axis=2)  # (N, P, C')
-        else:
+        elif self.pooling == 'mean':
             fts = tf.reduce_mean(x, axis=2)  # (N, P, C')
+        else:
+            raise RuntimeError('Pooling parameter should be either max or mean')
 
         # shortcut
         sc = self.shortcut(tf.expand_dims(features, axis=2))

@@ -11,9 +11,10 @@ kwargs:
       [16, [128, 128, 128]],
       [16, [256, 256, 256]]
     ]
-    dense_params: [256, 256]
     conv_pooling: 'average'
-    dropout_rate: 0.1
     seq_cutoff_len: 125
+    masking: true
   decoder:
-    output_classes: 2
+    dense_params: [256, 256]
+    dropout_rate: 0.1
+    n_outputs: 2

@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:
         elif cfg["model"]["type"] == 'transformer':
             model = Transformer(feature_name_to_idx, cfg["model"]["kwargs"]["encoder"], cfg["model"]["kwargs"]["decoder"])
         elif cfg['model']['type'] == 'particle_net':
-            model = ParticleNet(cfg['model']['kwargs']['encoder'], cfg['model']['kwargs']['decoder'])
+            model = ParticleNet(feature_name_to_idx, cfg['model']['kwargs']['encoder'], cfg['model']['kwargs']['decoder'])
         else:
             raise RuntimeError('Failed to infer model type')
         X_, _ = next(iter(train_data))
