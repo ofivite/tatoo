@@ -83,7 +83,6 @@ def main(cfg: DictConfig) -> None:
             print(model.summary())
 
         # log data params
-        mlflow.log_param('vs_type', cfg["vs_type"])
         mlflow.log_param('dataset_name', cfg["dataset_name"])
         mlflow.log_param('datasets_train', cfg["datasets"]["train"].keys())
         mlflow.log_param('datasets_val', cfg["datasets"]["val"].keys())
