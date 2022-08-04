@@ -36,6 +36,8 @@ tf_dataset_cfg:
 # training
 learning_rate: 0.0001
 n_epochs: 1
+min_delta: 0.001
+patience: 3
 
 # gpu
 gpu_id: 0
