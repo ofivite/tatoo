@@ -17,5 +17,5 @@ kwargs:
     dim_ff: 256 # they usually set it to 4x dim_model
     dropout_rate: 0.1
   decoder:
-    dim_ff_outputs: 256
+    dim_ff_layers: [256, 256]
     n_outputs: 2

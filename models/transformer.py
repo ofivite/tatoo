@@ -155,8 +155,7 @@ class Transformer(tf.keras.Model):
                                                      if feature_names=='all']
         self.global_block_id = list(feature_name_to_idx.keys()).index('global')
         self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
-        self.dense_1 = Dense(decoder_kwargs['dim_ff_outputs'], activation='relu')
-        self.dense_2 = Dense(decoder_kwargs['dim_ff_outputs']//2, activation='relu')
+        self.decoder_dense = [Dense(n_nodes, activation='relu') for n_nodes in decoder_kwargs['dim_ff_layers']]
         self.output_dense = Dense(decoder_kwargs['n_outputs'], activation=None)
         self.output_pred = Softmax()
 
@@ -193,8 +192,9 @@ class Transformer(tf.keras.Model):
         enc_output = tf.math.reduce_sum(enc_output, axis=1) 
 
         # decoder
-        output = self.dense_1(enc_output)
-        output = self.dense_2(output)
+        output = enc_output
+        for i in range(len(self.decoder_dense)):
+            output = self.decoder_dense[i](output)
         output = self.output_pred(self.output_dense(output))
 
         return output
