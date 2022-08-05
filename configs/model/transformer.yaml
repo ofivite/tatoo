@@ -3,7 +3,7 @@ defaults:
   - _self_
 
 type: transformer
-name: transformer_test_vs_${vs_type}
+name: transformer_test
 kwargs:
   encoder:
     embedding_kwargs: 
@@ -17,5 +17,5 @@ kwargs:
     dim_ff: 256 # they usually set it to 4x dim_model
     dropout_rate: 0.1
   decoder:
-    dim_ff_outputs: 256
-    n_outputs: 2
+    dim_ff_layers: [256, 256]
+    n_outputs: 4

@@ -60,7 +60,7 @@ def main(cfg: DictConfig) -> None:
 
         # compile and fit
         opt = tf.keras.optimizers.Adam(learning_rate=cfg["learning_rate"])
-        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.001, patience=3, mode='auto', restore_best_weights=True)
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=cfg["min_delta"], patience=cfg["patience"], mode='auto', restore_best_weights=True)
         checkpoint_path = 'tmp_checkpoints'
         model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
             filepath=checkpoint_path + "/" + "epoch_{epoch:02d}---val_loss_{val_loss:.3f}",
@@ -88,7 +88,6 @@ def main(cfg: DictConfig) -> None:
             print(model.summary())
 
         # log data params
-        mlflow.log_param('vs_type', cfg["vs_type"])
         mlflow.log_param('dataset_name', cfg["dataset_name"])
         mlflow.log_param('datasets_train', cfg["datasets"]["train"].keys())
         mlflow.log_param('datasets_val', cfg["datasets"]["val"].keys())

@@ -3,7 +3,7 @@ defaults:
   - _self_
   
 type: taco_net
-name: taco_test_vs_${vs_type}
+name: taco_test
 kwargs:
   encoder:
     hidden_dim_radial: 100

@@ -9,7 +9,8 @@ class FeatureEmbedding(tf.keras.layers.Layer):
         self.shared_cat_feature_idx = shared_cat_feature_idx
         self.feature_idx_to_select = feature_idx_to_select # should not include categorical features 
         
-        self.dense_hidden = [Dense(hidden_dim, activation=tf.nn.relu) for _ in range(self.n_particle_types)]
+        assert len(hidden_dim) == self.n_particle_types
+        self.dense_hidden = [Dense(hidden_dim[i], activation=tf.nn.relu) for i in range(self.n_particle_types)]
         self.dense_out = [Dense(out_dim, activation=tf.nn.relu) for _ in range(self.n_particle_types)]
         self.shared_embedding = Embedding(shared_cat_dim_in, shared_cat_dim_out)
         

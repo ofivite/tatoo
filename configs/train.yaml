@@ -9,20 +9,20 @@ path_to_mlflow: mlruns
 experiment_name: ???
 
 # datasets
-vs_type: ???
 dataset_name: SM_v4 # to log to mlflow for bookkeeping
 datasets: 
   train:
     SM_v4: # will take all files from "train" subfolder of this dataset
       path_to_dataset: ./datasets
-      tau_types: ['tau', '${vs_type}']
+      tau_types: ["tau", "e", "mu", "jet"]
   val:
     SM_v4: # will take all files from "val" subfolder of this dataset
       path_to_dataset: ./datasets
-      tau_types: ['tau', '${vs_type}']  
+      tau_types: ["tau", "e", "mu", "jet"]  
 
 # TF dataset formation
 tf_dataset_cfg:
+  n_threads: 5 # without controlling it may throw thread limit exception
   smart_batching_step: 10
   sequence_length_dist_start: 0
   sequence_length_dist_end: 300 
@@ -31,11 +31,13 @@ tf_dataset_cfg:
   cache: null # null to not cache the training dataset
   train_batch_size: 128
   val_batch_size: 128
-  classes: ["tau", "${vs_type}"] # will pick only those labels (in this order)
+  classes: ["tau", "e", "mu", "jet"] # will pick only those labels (in this order)
 
 # training
 learning_rate: 0.0001
 n_epochs: 1
+min_delta: 0.0001
+patience: 3
 
 # gpu
 gpu_id: 0
