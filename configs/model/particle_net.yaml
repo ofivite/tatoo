@@ -1,0 +1,24 @@
+defaults:
+  - .@kwargs.encoder.embedding_kwargs: embedding
+  - _self_
+
+type: particle_net
+name: particle_net_test_vs_${vs_type}
+kwargs:
+  encoder:
+    embedding_kwargs:
+      out_dim: ${model.kwargs.encoder.dim_model}
+    conv_params: [
+      [16, [64, 64, 64]],
+      [16, [128, 128, 128]],
+      [16, [256, 256, 256]]
+    ]
+    dim_model: 64
+    conv_pooling: 'mean'
+    masking: true
+    coordinate_type: polar
+    spatial_features: ['r', 'theta']
+  decoder:
+    dense_params: [256, 256]
+    dropout_rate: 0.1
+    n_outputs: 2
