@@ -106,3 +106,7 @@ def compose_datasets(datasets, tf_dataset_cfg):
     val_data = val_data.with_options(options)
 
     return train_data, val_data
+
+def create_padding_mask(seq):
+    mask = tf.math.reduce_any(tf.math.not_equal(seq, 0), axis=-1) # [batch, seq], 0 -> padding, 1 -> constituent
+    return mask

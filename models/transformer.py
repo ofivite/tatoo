@@ -2,6 +2,7 @@ from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import Dense, MultiHeadAttention, LayerNormalization, Dropout, Softmax
 from models.embedding import FeatureEmbedding
+from utils.training import create_padding_mask
 
 class MaskedMultiHeadAttention(tf.keras.layers.Layer):
     def __init__(self, num_heads, dim_head_key, dim_head_value, dim_out):
@@ -172,7 +173,7 @@ class Transformer(tf.keras.Model):
             else:
                 l = l.to_tensor()
             padded_inputs.append(l)
-            mask.append(self.create_padding_mask(l))
+            mask.append(create_padding_mask(l))
         mask = tf.concat(mask, axis=1) 
 
         padding_mask = tf.math.logical_and(mask[:, tf.newaxis, :], mask[:, :, tf.newaxis]) # [batch, seq, seq], symmetric block-diagonal
@@ -198,7 +199,3 @@ class Transformer(tf.keras.Model):
         output = self.output_pred(self.output_dense(output))
 
         return output
-
-    def create_padding_mask(self, seq):
-        mask = tf.math.reduce_any(tf.math.not_equal(seq, 0), axis=-1) # [batch, seq], 0 -> padding, 1 -> constituent
-        return mask
