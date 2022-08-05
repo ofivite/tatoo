@@ -3,17 +3,16 @@ defaults:
   - _self_
 
 type: particle_net
-name: particle_net_test_vs_${vs_type}
+name: particle_net_test
 kwargs:
   encoder:
     embedding_kwargs:
-      out_dim: ${model.kwargs.encoder.dim_model}
+      out_dim: 64
     conv_params: [
       [16, [64, 64, 64]],
       [16, [128, 128, 128]],
       [16, [256, 256, 256]]
     ]
-    dim_model: 64
     conv_pooling: 'mean'
     masking: true
     coordinate_type: polar
@@ -21,4 +20,4 @@ kwargs:
   decoder:
     dense_params: [256, 256]
     dropout_rate: 0.1
-    n_outputs: 2
+    n_outputs: 4
