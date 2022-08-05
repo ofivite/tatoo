@@ -3,7 +3,7 @@ defaults:
   - _self_
 
 type: transformer
-name: transformer_test_vs_${vs_type}
+name: transformer_test
 kwargs:
   encoder:
     embedding_kwargs: 
