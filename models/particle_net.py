@@ -1,7 +1,7 @@
-from tkinter import W
 from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Conv2D, Activation
+from models.embedding import FeatureEmbedding
 
 
 class ParticleNet(tf.keras.Model):
@@ -9,26 +9,45 @@ class ParticleNet(tf.keras.Model):
         super(ParticleNet, self).__init__()
 
         self.feature_name_to_idx = feature_name_to_idx
-        self.num_classes = decoder_cfg['n_outputs']
+
+        self.masking = encoder_cfg['masking']
+        self.coord_type = encoder_cfg['coordinate_type']
+        self.spatial_features = encoder_cfg['spatial_features']
         self.conv_params = [(layer_setup[0], tuple(layer_setup[1]),) for layer_setup in encoder_cfg['conv_params']]
         self.conv_pooling = encoder_cfg['conv_pooling']
+
         self.fc_params = [(layer_setup, decoder_cfg['dropout_rate'],) for layer_setup in decoder_cfg['dense_params']]
-        self.num_points = encoder_cfg['seq_cutoff_len']
-        self.masking = encoder_cfg['masking']
+        self.num_classes = decoder_cfg['n_outputs']
 
         # Initialising layers
+        embedding_kwargs = encoder_cfg['embedding_kwargs']
+        if isinstance(embedding_kwargs, DictConfig):
+            embedding_kwargs = OmegaConf.to_object(embedding_kwargs)
+        shared_cat_feature = embedding_kwargs.pop('shared_cat_feature')
+        features_to_drop = embedding_kwargs.pop('features_to_drop')
+        embedding_kwargs['shared_cat_feature_idx'], embedding_kwargs['feature_idx_to_select'] = [], []
+
+        # extract indices of feature to embedded and features to be used in the training 
+        for particle_type, names_to_idx in feature_name_to_idx.items():
+            if features_to_drop[particle_type] == "all": continue
+            embedding_kwargs['shared_cat_feature_idx'].append(names_to_idx[shared_cat_feature])
+            embedding_kwargs['feature_idx_to_select'].append([i for f, i in names_to_idx.items() 
+                                                                if f not in features_to_drop[particle_type] and f != shared_cat_feature])
+
+        self.feature_embedding = FeatureEmbedding(**embedding_kwargs) 
+
         self.batch_norm = BatchNormalization()
         
         self.edge_conv_layers = []
         for layer_idx, layer_param in enumerate(self.conv_params):
             K, channels = layer_param
             self.edge_conv_layers.append(
-                EdgeConv(self.num_points, K, channels, with_bn=True, activation='relu', pooling=self.conv_pooling, name=f'{self.name}_EdgeConv_{layer_idx}')
+                EdgeConv(K, channels, with_bn=True, activation='relu', pooling=self.conv_pooling, name=f'{self.name}_EdgeConv_{layer_idx}')
             )
 
-        if self.fc_params is not None:
-            self.decoder_layers = tf.keras.Sequential()
+        self.decoder_layers = tf.keras.Sequential()
 
+        if self.fc_params is not None:
             for layer_idx, layer_param in enumerate(self.fc_params):
                 units, dropout_rate = layer_param
 
@@ -36,20 +55,33 @@ class ParticleNet(tf.keras.Model):
                 if dropout_rate is not None and dropout_rate > 0:
                     self.decoder_layers.add(Dropout(dropout_rate))
 
-            self.decoder_layers.add(Dense(self.num_classes, activation='softmax'))
+        self.decoder_layers.add(Dense(self.num_classes, activation='softmax'))
 
     @tf.function
     def call(self, input):
-        features = input[0][:,:self.num_points,:].to_tensor() # (batch_size, particles, features), here: (128, 125, 22)
+        padded_inputs = []
+        for l_id, l in enumerate(input):
+            l = l.to_tensor()
+            padded_inputs.append(l)
+
+        features = self.feature_embedding(padded_inputs)
         # print(f'FEATURES - type: {type(features)}, shape: {features.shape}')
 
-        # Converting from (r, theta)-space to (eta, phi)-space
-        eta = features[:,:,self.feature_name_to_idx['r']] * tf.math.cos(features[:,:,self.feature_name_to_idx['theta']]) # (128, 125)
-        phi = features[:,:,self.feature_name_to_idx['r']] * tf.math.sin(features[:,:,self.feature_name_to_idx['theta']])
-        eta = eta[:, :, tf.newaxis] # (128, 125, 1)
-        phi = phi[:, :, tf.newaxis]
+        # Converting from (r, theta)-space to (eta, phi)-space or not
+        coord1_idx = self.feature_name_to_idx['pfCand'][self.spatial_features[0]]
+        coord2_idx = self.feature_name_to_idx['pfCand'][self.spatial_features[1]]
 
-        points = tf.concat([eta, phi], -1) # (128, 125, 2)
+        if self.coord_type == 'polar':
+            assert self.spatial_features == ['r', 'theta']
+
+            eta = features[:,:,coord1_idx] * tf.math.cos(features[:,:,coord2_idx]) # (128, 125)
+            phi = features[:,:,coord1_idx] * tf.math.sin(features[:,:,coord2_idx])
+            eta = eta[:, :, tf.newaxis] # (128, 125, 1)
+            phi = phi[:, :, tf.newaxis]
+
+            points = tf.concat([eta, phi], -1) # (128, 125, 2)
+        else:
+            points = tf.concat([features[:,:,coord1_idx,tf.newaxis], features[:,:,coord2_idx,tf.newaxis]], -1) # (128, 125, 2)
 
         if self.masking:
             mask = tf.math.reduce_any(tf.math.not_equal(features, 0), axis=-1)
@@ -75,10 +107,9 @@ class ParticleNet(tf.keras.Model):
 
 
 class EdgeConv(tf.keras.layers.Layer):
-    def __init__(self, num_points, K, channels, with_bn=True, activation='relu', pooling='average', seq_cutoff_len=125, **kwargs):
+    def __init__(self, K, channels, with_bn=True, activation='relu', pooling='mean', **kwargs):
         super(EdgeConv, self).__init__()
 
-        self.num_points = num_points
         self.K = K
         self.channels = channels
         self.with_bn = with_bn
@@ -111,7 +142,7 @@ class EdgeConv(tf.keras.layers.Layer):
         indicies = indicies[:,:,1:]
 
         fts = features
-        knn_fts = self.knn(self.num_points, self.K, indicies, fts)
+        knn_fts = self.knn(self.K, indicies, fts)
         knn_fts_center = tf.tile(tf.expand_dims(fts, axis=2), (1, 1, self.K, 1))  # (N, P, K, C)
         knn_fts = tf.concat([knn_fts_center, tf.subtract(knn_fts, knn_fts_center)], axis=-1)  # (N, P, K, 2*C)
 
@@ -141,12 +172,13 @@ class EdgeConv(tf.keras.layers.Layer):
         else:
             return sc + fts
 
-    def knn(self, num_points, k, topk_indices, features):
+    def knn(self, k, topk_indices, features):
         # topk_indices: (N, P, K)
         # features: (N, P, C)
         with tf.name_scope('knn'):
             queries_shape = tf.shape(features)
             batch_size = queries_shape[0]
+            num_points = queries_shape[1]
             batch_indices = tf.tile(tf.reshape(tf.range(batch_size), (-1, 1, 1, 1)), (1, num_points, k, 1))
             indices = tf.concat([batch_indices, tf.expand_dims(topk_indices, axis=3)], axis=3)  # (N, P, K, 2)
             return tf.gather_nd(features, indices)
