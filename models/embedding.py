@@ -16,7 +16,7 @@ class FeatureEmbedding(tf.keras.layers.Layer):
         
     def call(self, inputs):
         outputs = []
-        for i, x in enumerate(inputs):
+        for i, x in enumerate(inputs): # NB: assumes that len(inputs)==len(feature_idx_to_select), so make sure to align this in the model call()  
             x_emb = self.shared_embedding(x[..., self.shared_cat_feature_idx[i]])
             x_inputs = tf.gather(x, indices=self.feature_idx_to_select[i], axis=-1)
             x_inputs = tf.concat([x_inputs, x_emb], axis=-1)

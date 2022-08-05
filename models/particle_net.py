@@ -2,7 +2,7 @@ from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Conv2D, Activation
 from models.embedding import FeatureEmbedding
-
+from utils.training import create_padding_mask
 
 class ParticleNet(tf.keras.Model):
     def __init__(self, feature_name_to_idx, encoder_cfg, decoder_cfg):
@@ -13,13 +13,23 @@ class ParticleNet(tf.keras.Model):
         self.masking = encoder_cfg['masking']
         self.coord_type = encoder_cfg['coordinate_type']
         self.spatial_features = encoder_cfg['spatial_features']
+        assert len(self.spatial_features) == 2 # but can be easily generalised to auxiliary number
+        if self.coord_type == 'polar':
+            assert self.spatial_features == ['r', 'theta']
+
+        # here assume the correspondence of coord1/2_idx and yielded inputs 
+        self.coord1_idx = [feature_to_idx[self.spatial_features[0]] if particle_type != 'global' else None for particle_type, feature_to_idx in self.feature_name_to_idx.items()]
+        self.coord2_idx = [feature_to_idx[self.spatial_features[1]] if particle_type != 'global' else None for particle_type, feature_to_idx in self.feature_name_to_idx.items()]
+
         self.conv_params = [(layer_setup[0], tuple(layer_setup[1]),) for layer_setup in encoder_cfg['conv_params']]
         self.conv_pooling = encoder_cfg['conv_pooling']
 
         self.fc_params = [(layer_setup, decoder_cfg['dropout_rate'],) for layer_setup in decoder_cfg['dense_params']]
         self.num_classes = decoder_cfg['n_outputs']
 
-        # Initialising layers
+        self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_cfg['embedding_kwargs']['features_to_drop'].values())
+                                                     if feature_names=='all']
+
         embedding_kwargs = encoder_cfg['embedding_kwargs']
         if isinstance(embedding_kwargs, DictConfig):
             embedding_kwargs = OmegaConf.to_object(embedding_kwargs)
@@ -58,36 +68,38 @@ class ParticleNet(tf.keras.Model):
         self.decoder_layers.add(Dense(self.num_classes, activation='softmax'))
 
     @tf.function
-    def call(self, input):
+    def call(self, inputs):
         padded_inputs = []
-        for l_id, l in enumerate(input):
-            l = l.to_tensor()
-            padded_inputs.append(l)
+        mask = []
+        coord_shift = []
+        points = []
+        for input_id, input_ in enumerate(inputs):
+            if input_id in self.particle_blocks_to_drop: continue
+            input_ = input_.to_tensor()
+            padded_inputs.append(input_)
 
-        features = self.feature_embedding(padded_inputs)
-        # print(f'FEATURES - type: {type(features)}, shape: {features.shape}')
-
-        # Converting from (r, theta)-space to (eta, phi)-space or not
-        coord1_idx = self.feature_name_to_idx['pfCand'][self.spatial_features[0]]
-        coord2_idx = self.feature_name_to_idx['pfCand'][self.spatial_features[1]]
-
-        if self.coord_type == 'polar':
-            assert self.spatial_features == ['r', 'theta']
-
-            eta = features[:,:,coord1_idx] * tf.math.cos(features[:,:,coord2_idx]) # (128, 125)
-            phi = features[:,:,coord1_idx] * tf.math.sin(features[:,:,coord2_idx])
-            eta = eta[:, :, tf.newaxis] # (128, 125, 1)
-            phi = phi[:, :, tf.newaxis]
-
-            points = tf.concat([eta, phi], -1) # (128, 125, 2)
-        else:
-            points = tf.concat([features[:,:,coord1_idx,tf.newaxis], features[:,:,coord2_idx,tf.newaxis]], -1) # (128, 125, 2)
-
-        if self.masking:
-            mask = tf.math.reduce_any(tf.math.not_equal(features, 0), axis=-1)
-            mask = tf.cast(mask[:, :, tf.newaxis], dtype='float32')
-            coord_shift = tf.multiply(1e9, tf.cast(tf.equal(mask, 0), dtype='float32'))
+            # masks per particle type
+            mask_ = create_padding_mask(input_)
+            mask_ = tf.cast(mask_[:, :, tf.newaxis], dtype='float32')
+            mask.append(mask_)
+            coord_shift.append(tf.multiply(1e9, tf.cast(tf.equal(mask_, 0), dtype='float32')))
         
+            # compute cloud coordinates for the first layer
+            if self.coord_type == 'polar':
+                eta = input_[:,:,self.coord1_idx[input_id]] * tf.math.cos(input_[:,:,self.coord2_idx[input_id]]) 
+                phi = input_[:,:,self.coord1_idx[input_id]] * tf.math.sin(input_[:,:,self.coord2_idx[input_id]])
+                eta = eta[:, :, tf.newaxis]
+                phi = phi[:, :, tf.newaxis]
+                points.append(tf.concat([eta, phi], -1))
+            else:
+                points.append(tf.concat([input_[:,:,self.coord1_idx[input_id],tf.newaxis], input_[:,:,self.coord2_idx[input_id],tf.newaxis]], -1))
+
+        # concat across particle types
+        mask = tf.concat(mask, axis=1)
+        coord_shift = tf.concat(coord_shift, axis=1)
+        points = tf.concat(points, axis=1)
+        
+        features = self.feature_embedding(padded_inputs)        
         fts = tf.squeeze(self.batch_norm(tf.expand_dims(features, axis=2)), axis=2)
 
         for layer_idx, layer_param in enumerate(self.conv_params):
