@@ -151,10 +151,14 @@ class Encoder(tf.keras.layers.Layer):
 class Transformer(tf.keras.Model):
     def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs):
         super().__init__()
+        encoder_kwargs = OmegaConf.to_object(encoder_kwargs)
         self.use_masked_mha = encoder_kwargs["use_masked_mha"]
         self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_kwargs['embedding_kwargs']['features_to_drop'].values())
                                                      if feature_names=='all']
         self.global_block_id = list(feature_name_to_idx.keys()).index('global')
+        self.r_indices = [feature_indices['r'] if particle_block_name != 'global' else None for particle_block_name, feature_indices in feature_name_to_idx.items()]
+        self.r_cut = encoder_kwargs['embedding_kwargs'].pop('r_cut')
+
         self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
         self.decoder_dense = [Dense(n_nodes, activation='relu') for n_nodes in decoder_kwargs['dim_ff_layers']]
         self.output_dense = Dense(decoder_kwargs['n_outputs'], activation=None)
@@ -165,15 +169,17 @@ class Transformer(tf.keras.Model):
         # pad input tensors per particle type and create corresponding mask  
         mask = []
         padded_inputs = []
-        for l_id, l in enumerate(inputs):
-            if l_id in self.particle_blocks_to_drop: continue
-            if l_id==self.global_block_id:
-                l = tf.cast(l, tf.float32) # seems to be stored as float64, so cast to float32
-                l = l[:, tf.newaxis, :] # add dummy constituents axis, no padding needed
+        for input_id, input_ in enumerate(inputs):
+            if input_id in self.particle_blocks_to_drop: continue
+            if input_id==self.global_block_id:
+                input_ = tf.cast(input_, tf.float32) # seems to be stored as float64, so cast to float32
+                input_ = input_[:, tf.newaxis, :] # add dummy constituents axis, no padding needed
             else:
-                l = l.to_tensor()
-            padded_inputs.append(l)
-            mask.append(create_padding_mask(l))
+                if self.r_cut is not None:
+                    input_ = tf.ragged.boolean_mask(input_, input_[:,:,self.r_indices[input_id]] < self.r_cut)
+                input_ = input_.to_tensor()
+            padded_inputs.append(input_)
+            mask.append(create_padding_mask(input_))
         mask = tf.concat(mask, axis=1) 
 
         padding_mask = tf.math.logical_and(mask[:, tf.newaxis, :], mask[:, :, tf.newaxis]) # [batch, seq, seq], symmetric block-diagonal

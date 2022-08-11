@@ -1,6 +1,7 @@
 shared_cat_feature: 'particle_type'
 shared_cat_dim_in: 10 # !!! reduce it accordingly in case of dropping particle blocks
 shared_cat_dim_out: 2
+r_cut: 0.5 # cut on delta R ("r" in current notation) to apply on all particle types, `null` to not apply
 features_to_drop: # particle types must be ordered as they are yielded in TF dataset
   # list / "all" to drop the particle block altogether
   pfCand: [
