@@ -163,7 +163,8 @@ class EdgeConv(tf.keras.layers.Layer):
 
     def call(self, points, features):
         d = self.batch_distance_matrix_general(points, points)
-        _, indicies = tf.nn.top_k(-d, k=self.K + 1)
+        k = self.K if tf.shape(features)[1] >= 16 else tf.shape(features)[1]
+        _, indicies = tf.nn.top_k(-d, k=k + 1)
         indicies = indicies[:,:,1:]
 
         fts = features
