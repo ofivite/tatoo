@@ -1,3 +1,4 @@
+from tkinter import W
 from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Conv2D, Activation
@@ -30,6 +31,9 @@ class ParticleNet(tf.keras.Model):
 
         self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_cfg['embedding_kwargs']['features_to_drop'].values())
                                                      if feature_names=='all']
+
+        self.global_block_id = list(feature_name_to_idx.keys()).index('global')
+        assert self.global_block_id in self.particle_blocks_to_drop
 
         embedding_kwargs = encoder_cfg['embedding_kwargs']
         if isinstance(embedding_kwargs, DictConfig):
@@ -75,10 +79,12 @@ class ParticleNet(tf.keras.Model):
         mask = []
         coord_shift = []
         points = []
+        
+        global_fts = None
         for input_id, input_ in enumerate(inputs):
-            if input_id in self.particle_blocks_to_drop:
-                global_fts = input_ if self.use_global_features else None
-                continue
+            if input_id == self.global_block_id and self.use_global_features: 
+                global_fts = input_; continue
+            if input_id in self.particle_blocks_to_drop: continue
 
             input_ = input_.to_tensor()
             padded_inputs.append(input_)
