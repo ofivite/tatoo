@@ -168,8 +168,8 @@ class EdgeConv(tf.keras.layers.Layer):
         indicies = indicies[:,:,1:]
 
         fts = features
-        knn_fts = self.knn(self.K, indicies, fts)
-        knn_fts_center = tf.tile(tf.expand_dims(fts, axis=2), (1, 1, self.K, 1))  # (N, P, K, C)
+        knn_fts = self.knn(k, indicies, fts)
+        knn_fts_center = tf.tile(tf.expand_dims(fts, axis=2), (1, 1, k, 1))  # (N, P, K, C)
         knn_fts = tf.concat([knn_fts_center, tf.subtract(knn_fts, knn_fts_center)], axis=-1)  # (N, P, K, 2*C)
 
         x = knn_fts
