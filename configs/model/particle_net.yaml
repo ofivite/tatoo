@@ -21,6 +21,7 @@ kwargs:
     coordinate_type: polar
     spatial_features: ['r', 'theta']
   decoder:
+    use_global_features: true
     dense_params: [256, 256]
     dropout_rate: 0.1
     n_outputs: 4
