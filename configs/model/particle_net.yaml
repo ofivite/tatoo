@@ -12,15 +12,16 @@ kwargs:
         global: "all" # global features are not supported
       hidden_dim: [256, 256, 256] # adjust to dropped global features
     conv_params: [
-      [16, [64, 64, 64]],
-      [16, [128, 128, 128]],
-      [16, [256, 256, 256]]
+      [16, [160, 128, 96]],
+      [12, [160, 128, 96]],
+      [8, [160, 128, 96]],
     ]
     conv_pooling: 'mean'
     masking: true
     coordinate_type: polar
     spatial_features: ['r', 'theta']
   decoder:
-    dense_params: [256, 256]
+    use_global_features: true
+    dense_params: [192, 160, 128, 96, 64]
     dropout_rate: 0.1
     n_outputs: 4

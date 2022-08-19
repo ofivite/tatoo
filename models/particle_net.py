@@ -1,3 +1,4 @@
+from tkinter import W
 from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Conv2D, Activation
@@ -24,15 +25,20 @@ class ParticleNet(tf.keras.Model):
         self.conv_params = [(layer_setup[0], tuple(layer_setup[1]),) for layer_setup in encoder_cfg['conv_params']]
         self.conv_pooling = encoder_cfg['conv_pooling']
 
+        self.use_global_features = decoder_cfg['use_global_features']
         self.fc_params = [(layer_setup, decoder_cfg['dropout_rate'],) for layer_setup in decoder_cfg['dense_params']]
         self.num_classes = decoder_cfg['n_outputs']
 
         self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_cfg['embedding_kwargs']['features_to_drop'].values())
                                                      if feature_names=='all']
 
+        self.global_block_id = list(feature_name_to_idx.keys()).index('global')
+        assert self.global_block_id in self.particle_blocks_to_drop
+
         embedding_kwargs = encoder_cfg['embedding_kwargs']
         if isinstance(embedding_kwargs, DictConfig):
             embedding_kwargs = OmegaConf.to_object(embedding_kwargs)
+            self.r_cut = embedding_kwargs.pop('r_cut') # r_cut currently not implemented, but r_cut needs to be removed form embedding_kwargs
         shared_cat_feature = embedding_kwargs.pop('shared_cat_feature')
         features_to_drop = embedding_kwargs.pop('features_to_drop')
         embedding_kwargs['shared_cat_feature_idx'], embedding_kwargs['feature_idx_to_select'] = [], []
@@ -73,8 +79,13 @@ class ParticleNet(tf.keras.Model):
         mask = []
         coord_shift = []
         points = []
+        
+        global_fts = None
         for input_id, input_ in enumerate(inputs):
+            if input_id == self.global_block_id and self.use_global_features: 
+                global_fts = input_; continue
             if input_id in self.particle_blocks_to_drop: continue
+
             input_ = input_.to_tensor()
             padded_inputs.append(input_)
 
@@ -113,7 +124,9 @@ class ParticleNet(tf.keras.Model):
         fts = tf.math.multiply(fts, mask) if self.masking else fts
         pool = tf.reduce_mean(fts, axis=1)  # (N, C)
 
-        out = self.decoder_layers(pool)
+        pool_comb = tf.concat([pool, global_fts], axis=1) if self.use_global_features else pool
+
+        out = self.decoder_layers(pool_comb)
 
         return out  # (N, num_classes)
 
@@ -151,12 +164,13 @@ class EdgeConv(tf.keras.layers.Layer):
     @tf.function
     def call(self, points, features):
         d = self.batch_distance_matrix_general(points, points)
-        _, indicies = tf.nn.top_k(-d, k=self.K + 1)
+        k = self.K if tf.shape(features)[1] > self.K else tf.shape(features)[1] - 1
+        _, indicies = tf.nn.top_k(-d, k=k + 1)
         indicies = indicies[:,:,1:]
 
         fts = features
-        knn_fts = self.knn(self.K, indicies, fts)
-        knn_fts_center = tf.tile(tf.expand_dims(fts, axis=2), (1, 1, self.K, 1))  # (N, P, K, C)
+        knn_fts = self.knn(k, indicies, fts)
+        knn_fts_center = tf.tile(tf.expand_dims(fts, axis=2), (1, 1, k, 1))  # (N, P, K, C)
         knn_fts = tf.concat([knn_fts_center, tf.subtract(knn_fts, knn_fts_center)], axis=-1)  # (N, P, K, 2*C)
 
         x = knn_fts
