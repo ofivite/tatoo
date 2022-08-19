@@ -61,6 +61,8 @@ class ParticleNet(tf.keras.Model):
                 EdgeConv(K, channels, with_bn=True, activation='relu', pooling=self.conv_pooling, name=f'{self.name}_EdgeConv_{layer_idx}')
             )
 
+        self.global_idx_to_select = [i for f,i in self.feature_name_to_idx['global'].items()
+                                            if f not in decoder_cfg['global_features_to_drop'] ]
         self.decoder_layers = tf.keras.Sequential()
 
         if self.fc_params is not None:
@@ -83,7 +85,7 @@ class ParticleNet(tf.keras.Model):
         global_fts = None
         for input_id, input_ in enumerate(inputs):
             if input_id == self.global_block_id and self.use_global_features: 
-                global_fts = input_; continue
+                global_fts = tf.gather(input_, indices=self.global_idx_to_select, axis=-1); continue
             if input_id in self.particle_blocks_to_drop: continue
 
             input_ = input_.to_tensor()

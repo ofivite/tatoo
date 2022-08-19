@@ -6,10 +6,11 @@ type: particle_net
 name: particle_net_test
 kwargs:
   encoder:
-    embedding_kwargs:
+    embedding_kwargs: # overloading emb. cfg
+      shared_cat_dim_in: 9 # adjust to dropped global features
       out_dim: 64
       features_to_drop:
-        global: "all" # global features are not supported
+        global: "all"
       hidden_dim: [256, 256, 256] # adjust to dropped global features
     conv_params: [
       [16, [160, 128, 96]],
@@ -22,6 +23,7 @@ kwargs:
     spatial_features: ['r', 'theta']
   decoder:
     use_global_features: true
+    global_features_to_drop: ['particle_type']
     dense_params: [192, 160, 128, 96, 64]
     dropout_rate: 0.1
     n_outputs: 4
