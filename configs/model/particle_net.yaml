@@ -10,7 +10,7 @@ kwargs:
       out_dim: 64
       features_to_drop:
         global: "all" # global features are not supported
-      hidden_dim: [512, 1024, 512] # adjust to dropped global features
+      hidden_dim: [256, 256, 256] # adjust to dropped global features
     conv_params: [
       [16, [64, 64, 64]],
       [16, [128, 128, 128]],
