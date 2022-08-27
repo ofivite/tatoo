@@ -34,7 +34,12 @@ tf_dataset_cfg:
   classes: ["tau", "e", "mu", "jet"] # will pick only those labels (in this order)
 
 # training
-learning_rate: 0.0001
+schedule: null # custom // null 
+warmup_steps: 4000 # only for schedule=custom, max LR = 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
+learning_rate: 0.0001 # only for schedule=null
+optimiser: sgd
+momentum: 0.9 # only for sgd
+nesterov: True # only for sgd
 n_epochs: 1
 min_delta: 0.0001
 patience: 3

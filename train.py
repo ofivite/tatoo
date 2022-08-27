@@ -7,7 +7,7 @@ from sklearn.metrics import roc_auc_score
 import tensorflow as tf
 
 from models.taco import TacoNet
-from models.transformer import Transformer
+from models.transformer import Transformer, CustomSchedule
 from models.particle_net import ParticleNet
 from utils.training import compose_datasets
 
@@ -59,7 +59,19 @@ def main(cfg: DictConfig) -> None:
         model(X_) # init it for correct autologging with mlflow
 
         # compile and fit
-        opt = tf.keras.optimizers.Adam(learning_rate=cfg["learning_rate"])
+        if cfg['schedule'] is None: 
+            learning_rate = cfg["learning_rate"]
+        elif cfg['schedule']=='custom':
+            learning_rate = CustomSchedule(cfg["model"]["kwargs"]["encoder"]["dim_model"], cfg['warmup_steps'])
+        else:
+            raise RuntimeError(f"Unknown value for schedule: {cfg['schedule']}. Only \'custom\' and \'null\' are supported.")
+        if cfg['optimiser']=='adam': 
+            opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        elif cfg['optimiser']=='sgd':
+            opt = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=cfg['momentum'], nesterov=cfg['nesterov'])
+        else:
+            raise RuntimeError(f"Unknown value for optimiser: {cfg['optimiser']}. Only \'sgd\' and \'adam\' are supported.")
+
         early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=cfg["min_delta"], patience=cfg["patience"], mode='auto', restore_best_weights=True)
         checkpoint_path = 'tmp_checkpoints'
         model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
