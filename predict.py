@@ -34,7 +34,13 @@ def main(cfg: DictConfig) -> None:
         path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/checkpoints/{cfg["checkpoint"]}')
     else:
         path_to_model = to_absolute_path(f'{cfg["path_to_mlflow"]}/{cfg["experiment_id"]}/{cfg["run_id"]}/artifacts/model/')
-    model = load_model(path_to_model)
+    
+    with mlflow.start_run(experiment_id=cfg["experiment_id"], run_id=cfg["run_id"]) as active_run:
+        trained_with_custom_schedule = 'CustomSchedule' in active_run.data.params["opt_learning_rate"]
+    if trained_with_custom_schedule: # have to pass schedule signature as custom_objects
+        model = load_model(path_to_model, {'CustomSchedule': lambda **unused_kwargs: None})
+    else:
+        model = load_model(path_to_model)
 
     if cfg["n_files"] == -1: # take all the files
         paths = glob(to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{cfg["dataset_type"]}/*/{cfg["tau_type"]}'))

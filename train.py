@@ -62,7 +62,7 @@ def main(cfg: DictConfig) -> None:
         if cfg['schedule'] is None: 
             learning_rate = cfg["learning_rate"]
         elif cfg['schedule']=='custom':
-            learning_rate = CustomSchedule(cfg["model"]["kwargs"]["encoder"]["dim_model"], cfg['warmup_steps'], cfg['lr_multiplier'])
+            learning_rate = CustomSchedule(float(cfg["model"]["kwargs"]["encoder"]["dim_model"]), float(cfg['warmup_steps']), float(cfg['lr_multiplier']))
         else:
             raise RuntimeError(f"Unknown value for schedule: {cfg['schedule']}. Only \'custom\' and \'null\' are supported.")
         if cfg['optimiser']=='adam': 
