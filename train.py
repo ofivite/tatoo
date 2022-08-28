@@ -12,7 +12,6 @@ from models.particle_net import ParticleNet
 from utils.training import compose_datasets
 
 import mlflow
-from mlflow.tracking.context.git_context import _get_git_commit
 mlflow.tensorflow.autolog(log_models=False) 
 
 @hydra.main(config_path='configs', config_name='train')
@@ -117,8 +116,6 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_params(params_embedding)
         mlflow.log_params(cfg["model"]["kwargs"]["decoder"])
         mlflow.log_params({f'model_node_{i}': c for i,c in enumerate(cfg["tf_dataset_cfg"]["classes"])})
-        mlflow.log_param('lr_multiplier', cfg["lr_multiplier"])
-        mlflow.log_param('warmup_steps', cfg["warmup_steps"])
         
         # log N trainable params 
         summary_list = []
@@ -138,7 +135,6 @@ def main(cfg: DictConfig) -> None:
 
         # log misc. info
         mlflow.log_param('run_id', run_id)
-        mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
         mlflow.log_artifacts(checkpoint_path, "checkpoints")
         shutil.rmtree(checkpoint_path)
 
