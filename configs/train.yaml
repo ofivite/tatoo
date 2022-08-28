@@ -35,9 +35,10 @@ tf_dataset_cfg:
 
 # training
 schedule: null # custom // null 
-warmup_steps: 4000 # only for schedule=custom, max LR = 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
+warmup_steps: 4000 # only for schedule=custom, max LR = lr_multiplier * 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
+lr_multiplier: 0.1 # only for schedule=custom
 learning_rate: 0.0001 # only for schedule=null
-optimiser: sgd
+optimiser: sgd # sgd // adam
 momentum: 0.9 # only for sgd
 nesterov: True # only for sgd
 n_epochs: 1

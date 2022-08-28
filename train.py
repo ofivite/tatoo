@@ -62,7 +62,7 @@ def main(cfg: DictConfig) -> None:
         if cfg['schedule'] is None: 
             learning_rate = cfg["learning_rate"]
         elif cfg['schedule']=='custom':
-            learning_rate = CustomSchedule(cfg["model"]["kwargs"]["encoder"]["dim_model"], cfg['warmup_steps'])
+            learning_rate = CustomSchedule(cfg["model"]["kwargs"]["encoder"]["dim_model"], cfg['warmup_steps'], cfg['lr_multiplier'])
         else:
             raise RuntimeError(f"Unknown value for schedule: {cfg['schedule']}. Only \'custom\' and \'null\' are supported.")
         if cfg['optimiser']=='adam': 
@@ -117,6 +117,8 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_params(params_embedding)
         mlflow.log_params(cfg["model"]["kwargs"]["decoder"])
         mlflow.log_params({f'model_node_{i}': c for i,c in enumerate(cfg["tf_dataset_cfg"]["classes"])})
+        mlflow.log_param('lr_multiplier', cfg["lr_multiplier"])
+        mlflow.log_param('warmup_steps', cfg["warmup_steps"])
         
         # log N trainable params 
         summary_list = []

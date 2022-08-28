@@ -207,9 +207,10 @@ class Transformer(tf.keras.Model):
         return output
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
-  def __init__(self, d_model, warmup_steps):
+  def __init__(self, d_model, warmup_steps, lr_multiplier):
     super(CustomSchedule, self).__init__()
 
+    self.lr_multiplier = lr_multiplier
     self.d_model = d_model
     self.d_model = tf.cast(self.d_model, tf.float32)
 
@@ -219,4 +220,4 @@ class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
     arg1 = tf.math.rsqrt(step)
     arg2 = step * (self.warmup_steps ** -1.5)
 
-    return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+    return self.lr_multiplier * tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
