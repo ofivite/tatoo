@@ -40,13 +40,13 @@ lr_multiplier: null # only for schedule=custom
 learning_rate: 0.0001 # only for schedule=null
 
 # optimiser
-optimiser: adam # sgd // adam // adamw
+optimiser: adam # sgd // adam // adamw // radam
 momentum: null # only for sgd
 nesterov: null # only for sgd
-weight_decay: null # only for adamw
-beta_1: 0.9 # only for adam/adamw
-beta_2: 0.999 # only for adam/adamw
-epsilon: 1e-7 # only for adam/adamw
+weight_decay: null # only for adamw/radam
+beta_1: 0.9 # only for adam/adamw/radam
+beta_2: 0.999 # only for adam/adamw/radam
+epsilon: 1e-7 # only for adam/adamw/radam
 
 # training
 n_epochs: 1
