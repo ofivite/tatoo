@@ -58,7 +58,7 @@ class ParticleNet(tf.keras.Model):
         for layer_idx, layer_param in enumerate(self.conv_params):
             K, channels = layer_param
             self.edge_conv_layers.append(
-                EdgeConv(K, channels, with_bn=True, activation='relu', pooling=self.conv_pooling, name=f'{self.name}_EdgeConv_{layer_idx}')
+                EdgeConv(K, channels, with_bn=True, activation=encoder_cfg['activation'], pooling=self.conv_pooling, name=f'{self.name}_EdgeConv_{layer_idx}')
             )
 
         self.global_idx_to_select = [i for f,i in self.feature_name_to_idx['global'].items()
@@ -69,7 +69,7 @@ class ParticleNet(tf.keras.Model):
             for layer_idx, layer_param in enumerate(self.fc_params):
                 units, dropout_rate = layer_param
 
-                self.decoder_layers.add(Dense(units, activation='relu'))                
+                self.decoder_layers.add(Dense(units, activation=decoder_cfg['activation']))                
                 if dropout_rate is not None and dropout_rate > 0:
                     self.decoder_layers.add(Dropout(dropout_rate))
 

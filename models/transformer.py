@@ -86,7 +86,7 @@ class MaskedMultiHeadAttention(tf.keras.layers.Layer):
 
         
 class EncoderLayer(tf.keras.layers.Layer):
-    def __init__(self, use_masked_mha, num_heads, dim_model, dim_head_key, dim_head_value, dim_ff, dropout_rate):
+    def __init__(self, use_masked_mha, num_heads, dim_model, dim_head_key, dim_head_value, dim_ff, activation, dropout_rate):
         super(EncoderLayer, self).__init__()
 
         if use_masked_mha:
@@ -95,7 +95,7 @@ class EncoderLayer(tf.keras.layers.Layer):
             self.mha = MultiHeadAttention(num_heads=num_heads, key_dim=dim_head_key, value_dim=dim_head_value, dropout=0)
 
         self.ffn = tf.keras.Sequential([
-                          Dense(dim_ff, activation='relu'),  
+                          Dense(dim_ff, activation=activation),  
                           Dense(dim_model)
                          ])
         self.layernorm1 = LayerNormalization(epsilon=1e-6)
@@ -116,12 +116,13 @@ class EncoderLayer(tf.keras.layers.Layer):
     
 class Encoder(tf.keras.layers.Layer):
     def __init__(self, feature_name_to_idx, embedding_kwargs, use_masked_mha, num_layers, num_heads, 
-                        dim_model, dim_head_key, dim_head_value, dim_ff, dropout_rate):
+                        dim_model, dim_head_key, dim_head_value, dim_ff, activation, dropout_rate):
         super(Encoder, self).__init__()
 
         self.num_layers = num_layers
         self.enc_layers = [EncoderLayer(use_masked_mha=use_masked_mha, num_heads=num_heads, dim_model=dim_model, 
-                                        dim_head_key=dim_head_key, dim_head_value=dim_head_value, dim_ff=dim_ff, dropout_rate=dropout_rate) 
+                                        dim_head_key=dim_head_key, dim_head_value=dim_head_value, dim_ff=dim_ff, 
+                                        activation=activation, dropout_rate=dropout_rate) 
                                             for _ in range(self.num_layers)]
         self.dropout = tf.keras.layers.Dropout(dropout_rate)
 
@@ -160,7 +161,7 @@ class Transformer(tf.keras.Model):
         self.r_cut = encoder_kwargs['embedding_kwargs'].pop('r_cut')
 
         self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
-        self.decoder_dense = [Dense(n_nodes, activation='relu') for n_nodes in decoder_kwargs['dim_ff_layers']]
+        self.decoder_dense = [Dense(n_nodes, activation=decoder_kwargs['activation']) for n_nodes in decoder_kwargs['dim_ff_layers']]
         self.output_dense = Dense(decoder_kwargs['n_outputs'], activation=None)
         self.output_pred = Softmax()
 

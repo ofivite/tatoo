@@ -21,9 +21,11 @@ kwargs:
     masking: true
     coordinate_type: polar
     spatial_features: ['r', 'theta']
+    activation: relu
   decoder:
     use_global_features: true
     global_features_to_drop: ['particle_type']
     dense_params: [192, 160, 128, 96, 64]
+    activation: relu
     dropout_rate: 0.1
     n_outputs: 4
