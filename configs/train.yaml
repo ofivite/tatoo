@@ -33,14 +33,22 @@ tf_dataset_cfg:
   val_batch_size: 128
   classes: ["tau", "e", "mu", "jet"] # will pick only those labels (in this order)
 
-# training
+# LR schedule
 schedule: null # custom // null 
-warmup_steps: 4000 # only for schedule=custom, max LR = lr_multiplier * 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
-lr_multiplier: 0.1 # only for schedule=custom
+warmup_steps: null # only for schedule=custom, max LR = lr_multiplier * 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
+lr_multiplier: null # only for schedule=custom
 learning_rate: 0.0001 # only for schedule=null
-optimiser: sgd # sgd // adam
-momentum: 0.9 # only for sgd
-nesterov: True # only for sgd
+
+# optimiser
+optimiser: adam # sgd // adam // adamw
+momentum: null # only for sgd
+nesterov: null # only for sgd
+weight_decay: null # only for adamw
+beta_1: 0.9 # only for adam/adamw
+beta_2: 0.999 # only for adam/adamw
+epsilon: 1e-7 # only for adam/adamw
+
+# training
 n_epochs: 1
 min_delta: 0.0001
 patience: 3

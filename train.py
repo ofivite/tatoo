@@ -5,6 +5,7 @@ from omegaconf import OmegaConf, DictConfig
 from sklearn.metrics import roc_auc_score
 
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 from models.taco import TacoNet
 from models.transformer import Transformer, CustomSchedule
@@ -65,9 +66,11 @@ def main(cfg: DictConfig) -> None:
         else:
             raise RuntimeError(f"Unknown value for schedule: {cfg['schedule']}. Only \'custom\' and \'null\' are supported.")
         if cfg['optimiser']=='adam': 
-            opt = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+            opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=cfg['beta_1'], beta_2=cfg['beta_2'], epsilon=cfg['epsilon'])
         elif cfg['optimiser']=='sgd':
             opt = tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=cfg['momentum'], nesterov=cfg['nesterov'])
+        elif cfg['optimiser']=='adamw':
+            opt = tfa.optimizers.AdamW(weight_decay=cfg['weight_decay'], learning_rate=learning_rate, beta_1=cfg['beta_1'], beta_2=cfg['beta_2'], epsilon=cfg['epsilon'])
         else:
             raise RuntimeError(f"Unknown value for optimiser: {cfg['optimiser']}. Only \'sgd\' and \'adam\' are supported.")
 
