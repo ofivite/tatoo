@@ -58,13 +58,23 @@ def main(cfg: DictConfig) -> None:
         X_, _ = next(iter(train_data))
         model(X_) # init it for correct autologging with mlflow
 
-        # compile and fit
+        # LR schedule
         if cfg['schedule'] is None: 
             learning_rate = cfg["learning_rate"]
         elif cfg['schedule']=='custom':
             learning_rate = CustomSchedule(float(cfg["model"]["kwargs"]["encoder"]["dim_model"]), float(cfg['warmup_steps']), float(cfg['lr_multiplier']))
+        elif cfg['schedule']=='decrease':
+            def scheduler(epoch, lr):
+                if epoch%cfg['decrease_every']!=0 or epoch==0:
+                    return lr
+                else:
+                    return lr / cfg['decrease_by']
+            learning_rate = cfg["learning_rate"]
+            lr_scheduler = tf.keras.callbacks.LearningRateScheduler(scheduler)
         else:
-            raise RuntimeError(f"Unknown value for schedule: {cfg['schedule']}. Only \'custom\' and \'null\' are supported.")
+            raise RuntimeError(f"Unknown value for schedule: {cfg['schedule']}. Only \'custom\', \'decrease\' and \'null\' are supported.")
+
+        # optimiser
         if cfg['optimiser']=='adam': 
             opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=cfg['beta_1'], beta_2=cfg['beta_2'], epsilon=cfg['epsilon'])
         elif cfg['optimiser']=='sgd':
@@ -76,6 +86,7 @@ def main(cfg: DictConfig) -> None:
         else:
             raise RuntimeError(f"Unknown value for optimiser: {cfg['optimiser']}. Only \'sgd\' and \'adam\' are supported.")
 
+        # callbacks & compile
         early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=cfg["min_delta"], patience=cfg["patience"], mode='auto', restore_best_weights=True)
         checkpoint_path = 'tmp_checkpoints'
         model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
@@ -85,7 +96,7 @@ def main(cfg: DictConfig) -> None:
             mode='min',
             save_freq='epoch',
             save_best_only=False)
-        callbacks = [early_stopping, model_checkpoint]
+        callbacks = [early_stopping, model_checkpoint] if cfg['schedule']!='descrease' else [early_stopping, model_checkpoint, lr_scheduler]
         model.compile(optimizer=opt,
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
                     metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
@@ -121,6 +132,9 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_params(params_embedding)
         mlflow.log_params(cfg["model"]["kwargs"]["decoder"])
         mlflow.log_params({f'model_node_{i}': c for i,c in enumerate(cfg["tf_dataset_cfg"]["classes"])})
+        if cfg['schedule']=='decrease':
+            mlflow.log_param('decrease_every', cfg['decrease_every'])
+            mlflow.log_param('decrease_by', cfg['decrease_by'])
         
         # log N trainable params 
         summary_list = []

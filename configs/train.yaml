@@ -34,10 +34,12 @@ tf_dataset_cfg:
   classes: ["tau", "e", "mu", "jet"] # will pick only those labels (in this order)
 
 # LR schedule
-schedule: null # custom // null 
+schedule: null # custom // null // decrease
 warmup_steps: null # only for schedule=custom, max LR = lr_multiplier * 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
 lr_multiplier: null # only for schedule=custom
 learning_rate: 0.0001 # only for schedule=null
+decrease_every: null # only for schedule=decrease
+decrease_by: null # only for schedule=decrease
 
 # optimiser
 optimiser: adam # sgd // adam // adamw // radam
