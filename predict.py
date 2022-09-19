@@ -9,6 +9,7 @@ import mlflow
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+import tensorflow_addons as tfa
 from tensorflow.keras.models import load_model
 
 physical_devices = tf.config.list_physical_devices('GPU') 
