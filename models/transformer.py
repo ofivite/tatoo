@@ -104,7 +104,7 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.dropout2 = Dropout(dropout_rate)
 
     def call(self, x, mask, training): # , return_attention_scores=False
-        attn_output = self.mha(query=x, value=x, key=x, attention_mask=mask, return_attention_scores=False) 
+        attn_output, attn_score = self.mha(query=x, value=x, key=x, attention_mask=mask, return_attention_scores=True) 
         attn_output = self.dropout1(attn_output, training=training)
         out1 = self.layernorm1(x + attn_output)  
 
@@ -112,7 +112,7 @@ class EncoderLayer(tf.keras.layers.Layer):
         ffn_output = self.dropout2(ffn_output, training=training)
         out2 = self.layernorm2(out1 + ffn_output)
 
-        return out2
+        return out2, attn_score
     
 class Encoder(tf.keras.layers.Layer):
     def __init__(self, feature_name_to_idx, embedding_kwargs, use_masked_mha, num_layers, num_heads, 
@@ -144,13 +144,16 @@ class Encoder(tf.keras.layers.Layer):
     def call(self, x, mask, training):
         x = self.feature_embedding(x)
         x = self.dropout(x, training=training)
+        
+        attn_scores = []
         for i in range(self.num_layers):
-            x = self.enc_layers[i](x, mask, training)
+            x, attn_score = self.enc_layers[i](x, mask, training)
+            attn_scores.append(attn_score)
     
-        return x
+        return x, attn_scores
 
 class Transformer(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs):
+    def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs, output_attn=False):
         super().__init__()
         encoder_kwargs = OmegaConf.to_object(encoder_kwargs)
         self.use_masked_mha = encoder_kwargs["use_masked_mha"]
@@ -164,6 +167,7 @@ class Transformer(tf.keras.Model):
         self.decoder_dense = [Dense(n_nodes, activation=decoder_kwargs['activation']) for n_nodes in decoder_kwargs['dim_ff_layers']]
         self.output_dense = Dense(decoder_kwargs['n_outputs'], activation=None)
         self.output_pred = Softmax()
+        self.output_attn = output_attn
 
     def call(self, inputs, training):
 
@@ -190,7 +194,7 @@ class Transformer(tf.keras.Model):
         padding_mask = padding_mask[:, tf.newaxis, :, :] # additional axis for head dimension 
 
         # propagate through encoder
-        enc_output = self.encoder(padded_inputs, padding_mask, training)
+        enc_output, attn_scores = self.encoder(padded_inputs, padding_mask, training)
 
          # mask padded tokens before pooling 
         mask = tf.cast(mask, tf.float32)
@@ -205,7 +209,10 @@ class Transformer(tf.keras.Model):
             output = self.decoder_dense[i](output)
         output = self.output_pred(self.output_dense(output))
 
-        return output
+        if self.output_attn:
+            return output, attn_scores
+        else:
+            return output
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
   def __init__(self, d_model, warmup_steps, lr_multiplier):
