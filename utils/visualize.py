@@ -126,7 +126,7 @@ class Event:
             return sds
 
         if plot:
-            with plt.style.context('style.mplstyle'): # Custom style sheet
+            with plt.style.context('utils/style.mplstyle'): # Custom style sheet
                 fig, ax = plt.subplots(2,4, sharex=True, sharey=True, figsize=(32,12), constrained_layout=True)
 
                 for i in range(2):
@@ -192,7 +192,7 @@ class Event:
         })
 
         if plot:
-            with plt.style.context('style.mplstyle'):
+            with plt.style.context('utils/style.mplstyle'):
                 fig, ax = plt.subplots(1,1,figsize=(8,6),constrained_layout=True)
 
                 # Plotting heads as new ax.scatter()
@@ -247,7 +247,7 @@ class Event:
         # Creating one dataframes out of single event dataframes.
         df = pd.concat(data, axis=0)
 
-        with plt.style.context('style.mplstyle'):
+        with plt.style.context('utils/style.mplstyle'):
             fig, ax = plt.subplots(1,6,figsize=(8,6),constrained_layout=True, sharey=True)
 
             for layer in range(6):
