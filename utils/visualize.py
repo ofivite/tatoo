@@ -25,6 +25,9 @@ class Event:
 
         with initialize(config_path='../configs/'):
             self.cfg = compose(config_name='train.yaml')
+        assert self.cfg['model']['kwargs']['encoder']['embedding_kwargs']['r_cut'] is None, \
+                        'r_cut is not None -> please align sequence preprocessing in _get_attn_data' \
+                                              'with those done inside model.call()'
 
         self.feature_name_to_idx = {}
         for particle_type, names in self.cfg['feature_names'].items():
