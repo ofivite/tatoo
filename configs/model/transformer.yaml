@@ -20,4 +20,5 @@ kwargs:
   decoder:
     dim_ff_layers: [256, 128]
     activation: gelu
+    output_attn: false # false for training, true for attention visualisation
     n_outputs: 4

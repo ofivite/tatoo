@@ -153,7 +153,7 @@ class Encoder(tf.keras.layers.Layer):
         return x, attn_scores
 
 class Transformer(tf.keras.Model):
-    def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs, output_attn=False):
+    def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs):
         super().__init__()
         encoder_kwargs = OmegaConf.to_object(encoder_kwargs)
         self.use_masked_mha = encoder_kwargs["use_masked_mha"]
@@ -167,7 +167,7 @@ class Transformer(tf.keras.Model):
         self.decoder_dense = [Dense(n_nodes, activation=decoder_kwargs['activation']) for n_nodes in decoder_kwargs['dim_ff_layers']]
         self.output_dense = Dense(decoder_kwargs['n_outputs'], activation=None)
         self.output_pred = Softmax()
-        self.output_attn = output_attn
+        self.output_attn = decoder_kwargs['output_attn']
 
     def call(self, inputs, training):
 

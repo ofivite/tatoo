@@ -59,7 +59,7 @@ class Event:
 
         # ~~~~~~~ Models: ~~~~~~~
         self.trained_model = tf.keras.models.load_model('./trained_models/transformer_model/artifacts/model/')
-        self.model = Transformer(self.feature_name_to_idx, self.cfg['model']['kwargs']['encoder'], self.cfg['model']['kwargs']['decoder'], output_attn=True)
+        self.model = Transformer(self.feature_name_to_idx, self.cfg['model']['kwargs']['encoder'], self.cfg['model']['kwargs']['decoder'])
 
         # ~~~~~~~ Retrieving Particles and Attention Data: ~~~~~~~
         self.sequence_data, self.attn_data = self._get_attn_data(self.model, self.trained_model, self.train_data, self.val_data)
